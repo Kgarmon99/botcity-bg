@@ -1,5 +1,5 @@
 /* ===================== Bot City: Bowling Green · play ===================== */
-const G={t:0, mode:'walk', keys:new Set(), cash:40, savings:0, fuel:1, coins:0, job:null, gps:null, near:null, modal:false, yaw:0};
+const G={t:0, mode:'walk', keys:new Set(), cash:40, savings:0, fuel:1, coins:0, jet:false, jf:1, vy:0, job:null, gps:null, near:null, modal:false, yaw:0};
 const fmt=n=>(n<0?'-':'')+'$'+Math.abs(n).toLocaleString('en-US',{maximumFractionDigits:0});
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)), rand=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
 let AC=null; const audio=()=>{ if(!AC) try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} };
@@ -12,19 +12,19 @@ function closeModal(){ $('#modal').hidden=true; G.modal=false; }
 /* ---------- boot ---------- */
 async function boot(){ initThree(); setupMaterials(); $('#tLogo').src=MB_ASSETS.logo; buildCity();
   GLTF.crowd=await parseGLB(MB_ASSETS.crowd);
-  G.you=makeRig(GLTF.crowd, MB.you, 1.9,'g'); G.you.root.add(blob(1)); scene.add(G.you.root); const sp0=new THREE.Vector3(0,0,7.5), cp0=new THREE.Vector3(REAL.grid.hx+1.7,0,-14); W.fountain.localToWorld(sp0); W.fountain.localToWorld(cp0); G.p={x:sp0.x,z:sp0.z};
+  G.you=makeRig(GLTF.crowd, MB.you, 1.9,'g'); G.blob=blob(1); G.you.root.add(G.blob); scene.add(G.you.root); const sp0=new THREE.Vector3(0,0,7.5), cp0=new THREE.Vector3(REAL.grid.hx+1.7,0,-14); W.fountain.localToWorld(sp0); W.fountain.localToWorld(cp0); G.p={x:sp0.x,z:sp0.z,y:H(sp0.x,sp0.z)};
   G.car=makeCar({id:'mine',style:'hatch',color:'#00C853'}); scene.add(G.car); const ga=W.fountain.rotation.y; G.c={x:cp0.x,z:cp0.z,h:ga,v:0,vh:ga}; placeCar(G.car,G.c);
-  portals(); traffic(); peds(); coins(); mapCanvas(); fxInit();
+  portals(); traffic(); peds(); coins(); jetBuild(); mapCanvas(); fxInit();
   $('#go').disabled=false; $('#go').textContent='Explore Bowling Green';
   $('#go').onclick=()=>{ audio(); $('#title').hidden=true; $('#hud').hidden=false; $('#mini').hidden=false; $('#hSpd').hidden=false; toast('Welcome to <b>Bowling Green</b>! Walk to the glowing rings to enter MoneyVerse games.'); setTimeout(()=>toast('Your car is parked right here. Press <b>E</b> next to it to drive.'),4000); };
   loop(); }
 
 /* ---------- input ---------- */
 addEventListener('keydown',e=>{ const k=e.key.toLowerCase(); G.keys.add(k); if(G.modal){ if(k==='escape') closeModal(); return; }
-  if(k==='e') act(); if(k==='m') bigMap(); if(k==='j') jobBoard(); if(['arrowup','arrowdown',' '].includes(k)) e.preventDefault(); });
+  if(k==='e') act(); if(k==='m') bigMap(); if(k==='j') jetToggle(); if(k==='b') jobBoard(); if(['arrowup','arrowdown',' ','control'].includes(k)) e.preventDefault(); });
 addEventListener('keyup',e=>G.keys.delete(e.key.toLowerCase()));
 let drag=null; $('#gl').addEventListener('pointerdown',e=>drag=e.clientX); addEventListener('pointerup',()=>drag=null); addEventListener('pointermove',e=>{ if(drag!=null){ G.yaw-=(e.clientX-drag)*.006; drag=e.clientX; } });
-$$('#pads button').forEach(b=>{ const k=b.dataset.k; b.onpointerdown=e=>{ e.preventDefault(); G.keys.add(k); if(k==='e') act(); }; b.onpointerup=b.onpointerleave=()=>G.keys.delete(k); });
+$$('#pads button').forEach(b=>{ const k=b.dataset.k; b.onpointerdown=e=>{ e.preventDefault(); G.keys.add(k); if(k==='e') act(); if(k==='j') jetToggle(); }; b.onpointerup=b.onpointerleave=()=>G.keys.delete(k); });
 const K=(...a)=>a.some(k=>G.keys.has(k));
 
 /* ---------- portals: doors into the MoneyVerse ---------- */
@@ -32,7 +32,7 @@ function portals(){ G.portals=LANDMARKS.filter(l=>l.game).map(l=>{ const ang=l.g
   const nr=nearRoad(x,z); const y=H(x,z); const ring=new THREE.Mesh(new THREE.TorusGeometry(2.2,.22,10,40),new THREE.MeshStandardMaterial({color:l.col,emissive:l.col,emissiveIntensity:1.4})); ring.position.set(x,y+2.6,z); ring.rotation.y=ang; scene.add(ring);
   const beam=new THREE.Mesh(new THREE.CylinderGeometry(2,2,60,20,1,true),new THREE.MeshBasicMaterial({color:l.col,transparent:true,opacity:.12,depthWrite:false,side:THREE.DoubleSide})); beam.position.set(x,y+30,z); scene.add(beam);
   const tag=sign(scene,[{t:l.name,size:56,color:'#FFFFFF'}],6,1.1,x,y+5.6,z,{bg:l.col,r:18,w:768,h:144}); return {l,x,z,ring,beam,tag}; }); }
-function act(){ if(G.near==='car'){ G.mode=G.mode==='drive'?'walk':'drive'; if(G.mode==='walk'){ G.p.x=G.c.x-Math.cos(G.c.h)*2.6; G.p.z=G.c.z+Math.sin(G.c.h)*2.6; } sfx.door(); return; }
+function act(){ if(G.near==='car'){ G.mode=G.mode==='drive'?'walk':'drive'; if(G.mode==='walk'){ G.p.x=G.c.x-Math.cos(G.c.h)*2.6; G.p.z=G.c.z+Math.sin(G.c.h)*2.6; G.p.y=H(G.p.x,G.p.z); G.vy=0; } sfx.door(); return; }
   if(G.near&&G.near.l) openPortal(G.near.l); else if(G.near==='truck') jobBoard(); else if(G.near==='atm') atm(); else if(G.near&&G.near.gas) gas(); }
 function openPortal(l){ modal(`<div class="eye">MoneyVerse door</div><h2>${l.name}</h2>${l.sponsor?`<div class="spon">${l.sponsor}</div>`:''}<p>${l.blurb}</p>
   <div class="row"><button class="btn" onclick="closeModal()">Keep exploring</button><a class="btn pri" href="${l.url}" target="_blank" rel="noopener">Play ${l.name.split(' ·')[0]} ↗</a></div>`); sfx.door(); }
@@ -66,14 +66,47 @@ function pedTick(dt){ G.peds.forEach(o=>{ const dx=o.tx-o.x, dz=o.tz-o.z, d=Math
 
 /* ---------- collectible coins ---------- */
 function coins(){ G.coinList=[]; const geo=new THREE.CylinderGeometry(.7,.7,.16,22); for(let i=0;i<60;i++){ const s=pick(SEGS.filter(s=>s.r.kind!=='hwy')), u=rand(0,s.L), x=s.x0+s.dx*u, z=s.z0+s.dz*u; const m=new THREE.Mesh(geo,MB.coin); m.rotation.x=Math.PI/2; m.position.set(x,roadY(x,z)+1.4,z); scene.add(m); G.coinList.push(m); } }
-function coinTick(dt){ const me=G.mode==='drive'?G.c:G.p; G.coinList.forEach(m=>{ if(!m.visible) return; m.rotation.z+=dt*3; if(Math.hypot(m.position.x-me.x,m.position.z-me.z)<2.2){ m.visible=false; G.coins++; G.cash+=5; sfx.coin(); if(G.coins%10===0) toast(`🪙 ${G.coins}/60 MoneyBot coins found!`,'good'); } }); }
+function coinTick(dt){ const me=G.mode==='drive'?G.c:G.p; G.coinList.forEach(m=>{ if(!m.visible) return; m.rotation.z+=dt*3; const dy=G.mode==='drive'?0:Math.abs(m.position.y-(G.p.y+1.2)); if(Math.hypot(m.position.x-me.x,m.position.z-me.z)<(m.userData.sky?2.8:2.2)&&dy<(m.userData.sky?3:4)){ if(m.userData.sky){ G.cash+=20; toast('🪙 Sky coin! +$20','good'); } m.visible=false; G.coins++; G.cash+=5; sfx.coin(); if(G.coins%10===0&&!m.userData.sky) toast(`🪙 ${G.coins}/60 MoneyBot coins found!`,'good'); } }); }
 
 /* ---------- movement ---------- */
 function placeCar(g,c){ g.position.set(c.x,roadY(c.x,c.z)-.02,c.z); g.rotation.y=c.h; }
 function walkTick(dt){ const sp=K('shift')?11:6, f=(K('w','arrowup','gas')?1:0)-(K('s','arrowdown','brake')?1:0), s=(K('d','arrowright','right')?1:0)-(K('a','arrowleft','left')?1:0);
-  const r=G.you.root; if(f||s){ const ang=G.yaw+Math.atan2(-s,f)*1, mv=Math.min(1,Math.hypot(f,s)); const p={x:G.p.x+Math.sin(ang)*sp*mv*dt,z:G.p.z+Math.cos(ang)*sp*mv*dt}; collide(p,.7); G.p.x=clamp(p.x,-600,600); G.p.z=clamp(p.z,-600,600); r.rotation.y=ang; rigPlay(G.you,'Idle'); }
-  r.visible=true; r.position.set(G.p.x,H(G.p.x,G.p.z)+((f||s)?Math.abs(Math.sin(G.t*10))*.08:0),G.p.z); G.you.mixer.update(dt);
-  camFollow(G.p.x,H(G.p.x,G.p.z)+1.6,G.p.z,G.yaw,9,4.6,dt); }
+  const r=G.you.root; if(f||s){ const ang=G.yaw+Math.atan2(-s,f)*1, mv=Math.min(1,Math.hypot(f,s)); const spd=G.jet&&G.air?(K('shift')?34:20):sp; const p={x:G.p.x+Math.sin(ang)*spd*mv*dt,z:G.p.z+Math.cos(ang)*spd*mv*dt,y:G.p.y}; collide(p,.7); G.p.x=clamp(p.x,-600,600); G.p.z=clamp(p.z,-600,600); r.rotation.y=ang; rigPlay(G.you,'Idle'); }
+  jetPhys(dt,f||s); r.visible=true; r.position.set(G.p.x,G.p.y+(!G.air&&(f||s)?Math.abs(Math.sin(G.t*10))*.08:0),G.p.z);
+  r.rotation.x=G.air?(f?.28*f:0)+Math.sin(G.t*2.2)*.04:0; G.you.mixer.update(dt);
+  camFollow(G.p.x,G.p.y+1.6,G.p.z,G.yaw,G.air?12:9,G.air?5.5:4.6,dt); }
+
+/* ---------- jetpack (J) ---------- */
+function jetBuild(){ const g=new THREE.Group(), m=(c,o)=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.35,metalness:.6},o||{}));
+  const body=new THREE.Mesh(new THREE.BoxGeometry(.62,.72,.3),m('#111827')); body.position.set(0,1.2,-.36); g.add(body);
+  const stripe=new THREE.Mesh(new THREE.BoxGeometry(.64,.1,.32),m('#00C853',{emissive:'#00C853',emissiveIntensity:.8})); stripe.position.set(0,1.38,-.36); g.add(stripe);
+  G.jetFl=[]; [-.2,.2].forEach(x=>{ const t=new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,.8,14),m('#CBD5E1',{metalness:.9,roughness:.2})); t.position.set(x,1.12,-.55); g.add(t);
+    const n=new THREE.Mesh(new THREE.CylinderGeometry(.1,.15,.16,14),m('#374151')); n.position.set(x,.66,-.55); g.add(n);
+    const fl=new THREE.Mesh(new THREE.ConeGeometry(.13,.9,12),new THREE.MeshBasicMaterial({color:'#FFB020',transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false})); fl.rotation.x=Math.PI; fl.position.set(x,.15,-.55); g.add(fl);
+    const core=new THREE.Mesh(new THREE.ConeGeometry(.06,.5,10),new THREE.MeshBasicMaterial({color:'#E0F2FE',transparent:true,blending:THREE.AdditiveBlending,depthWrite:false})); core.rotation.x=Math.PI; core.position.set(x,.4,-.55); g.add(core); G.jetFl.push(fl,core); });
+  G.jetLight=new THREE.PointLight('#FF9A3C',0,9,2); G.jetLight.position.set(0,.2,-.55); g.add(G.jetLight);
+  g.visible=false; G.you.root.add(g); G.jetG=g;
+  // exhaust puffs
+  const N=70, geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(N*3).fill(-999),3));
+  G.puff={pts:new THREE.Points(geo,new THREE.PointsMaterial({color:'#FFD7A0',size:.9,transparent:true,opacity:.45,depthWrite:false,blending:THREE.AdditiveBlending})),v:[],i:0,N}; G.puff.pts.frustumCulled=false; scene.add(G.puff.pts);
+  for(let i=0;i<N;i++) G.puff.v.push({life:0});
+  // sky coins: only reachable by jetpack
+  const geo2=new THREE.CylinderGeometry(1.1,1.1,.22,24), gold=MB.coin; LANDMARKS.forEach((l,i)=>{ if(i%2) return; const cm=new THREE.Mesh(geo2,gold); cm.rotation.x=Math.PI/2; cm.position.set(l.x,H(l.x,l.z)+34+(i%3)*6,l.z); cm.userData.sky=1; scene.add(cm); G.coinList&&G.coinList.push(cm); (G.sky=G.sky||[]).push(cm); }); }
+function jetToggle(){ if(G.modal||G.mode==='drive'){ if(G.mode==='drive') toast('Get out of the car first (E), then press <b>J</b> for the jetpack.'); return; }
+  G.jet=!G.jet; G.jetG.visible=G.jet; tone(G.jet?440:300,.18,'sawtooth',.03); setTimeout(()=>tone(G.jet?880:200,.15,'sine',.03),90);
+  if(G.jet&&!G.jetHelp){ G.jetHelp=1; toast('🚀 Jetpack on! Hold <b>Space</b> to fly up, <b>Ctrl</b>/<b>C</b> to dive, <b>Shift</b> to boost. Land on rooftops and grab the sky coins!'); }
+  else toast(G.jet?'🚀 Jetpack on':'Jetpack off'); }
+function jetPhys(dt,moving){ const up=G.jet&&K(' ','space','jet')&&G.jf>0, down=K('control','c'), fl=floorAt(G.p.x,G.p.z,G.p.y);
+  if(G.jet){ if(up){ G.vy+=(26-G.vy*.9)*dt; G.jf=Math.max(0,G.jf-dt*.09); } else if(down) G.vy-=30*dt; else G.vy+=(-G.vy*2.2-2.2)*dt; }
+  else G.vy-=30*dt;
+  G.vy=clamp(G.vy,-40,18); G.p.y+=G.vy*dt; if(G.p.y>160){ G.p.y=160; G.vy=Math.min(0,G.vy); }
+  if(G.p.y<=fl){ if(G.vy<-14) sfx.bad(); G.p.y=fl; G.vy=Math.max(0,G.vy); G.air=G.p.y-fl>.05; G.jf=Math.min(1,G.jf+dt*.35); } G.air=G.p.y>fl+.3;
+  if(!G.jet&&!G.air) G.p.y=fl; G.blob&&(G.blob.visible=!G.air);
+  // flames + puffs
+  const thr=G.jet?(up?1:G.air?.45:.12):0; G.jetFl&&G.jetFl.forEach((f,i)=>{ const s=thr*(.85+Math.random()*.3); f.scale.set(1,Math.max(.01,s*(i%2?1:1.4)),1); f.visible=thr>0; }); G.jetLight&&(G.jetLight.intensity=thr*3.5);
+  const P=G.puff; if(P){ const a=P.pts.geometry.attributes.position; if(thr>.3&&Math.random()<thr*1.2){ const v=P.v[P.i]; v.life=1; v.x=G.p.x+(Math.random()-.5)*.4; v.y=G.p.y+.2; v.z=G.p.z+(Math.random()-.5)*.4; v.vx=(Math.random()-.5)*1.5; v.vz=(Math.random()-.5)*1.5; P.i=(P.i+1)%P.N; }
+    P.v.forEach((v,i)=>{ if(v.life>0){ v.life-=dt*1.6; v.x+=v.vx*dt; v.z+=v.vz*dt; v.y-=dt*3; a.setXYZ(i,v.x,v.y,v.z); } else a.setXYZ(i,0,-999,0); }); a.needsUpdate=true; }
+  if(G.jet&&up&&Math.random()<dt*20) tone(70+Math.random()*40,.05,'sawtooth',.008); }
 function driveTick(dt){ const c=G.c, gas=K('w','arrowup','gas')&&G.fuel>0?1:0, brk=K('s','arrowdown','brake')?1:0, st=(K('a','arrowleft','left')?1:0)-(K('d','arrowright','right')?1:0), top=K('shift')?34:26;
   if(gas) c.v+=14*dt*(1-Math.max(0,c.v)/top); if(brk) c.v-=(c.v>0?24:8)*dt; c.v-=c.v*.25*dt+(gas||brk?0:Math.sign(c.v)*2*dt); c.v=clamp(c.v,-8,top);
   const on=nearRoad(c.x,c.z).d<1; if(!on) c.v*=1-dt*.9; G.fuel=Math.max(0,G.fuel-Math.abs(c.v)*dt*.00055); if(G.fuel<=0&&!G.fuelWarn){ G.fuelWarn=1; toast('⛽ Out of gas! Walk to a Bot Gas station (E) or press E to get out.','bad'); } if(G.fuel>0) G.fuelWarn=0;
@@ -122,7 +155,7 @@ function loop(){ requestAnimationFrame(loop); const dt=Math.min(.05,clock.getDel
   trafTick(dt); pedTick(dt); fxTick(dt,G.t); W.anim.forEach(f=>f(G.t)); G.portals&&G.portals.forEach(p=>{ p.ring.rotation.y+=dt; p.tag.lookAt(camera.position.x,p.tag.position.y,camera.position.z); });
   if(W.racers) W.racers.forEach(r=>{ r.a+=r.v*dt; r.c.position.set(Math.cos(r.a)*31*1.3,.2,Math.sin(r.a)*31); r.c.rotation.y=-r.a+Math.PI; });
   G.savings*=1+.04/525600*dt*60*60; /* sped up: one real minute ≈ one month */
-  if($('#hud')&&!$('#hud').hidden){ $('#hCash').textContent=fmt(G.cash); $('#hSave').textContent=fmt(G.savings); $('#hCoins').textContent=G.coins+'/60'; $('#hFuel').style.width=(G.fuel*100)+'%'; $('#hWhere').textContent=where();
+  if($('#hud')&&!$('#hud').hidden){ $('#hCash').textContent=fmt(G.cash); $('#hSave').textContent=fmt(G.savings); $('#hCoins').textContent=G.coins+'/'+G.coinList.length; $('#hFuel').style.width=(G.fuel*100)+'%'; $('#hWhere').textContent=where();
     $('#hSpd').textContent=G.mode==='drive'?Math.round(Math.abs(G.c.v)*2.2)+' mph':''; drawMini();
     if(G.gps){ const me=G.mode==='drive'?G.c:G.p, d=Math.hypot(G.gps.x-me.x,G.gps.z-me.z); $('#hGps').hidden=false; $('#hGps').innerHTML=`📍 ${G.gps.name} · ${Math.round(d*4)} m${G.job?' · ⏱ '+Math.ceil(G.job.left)+'s':''}`; } else $('#hGps').hidden=true; }
   renderer.render(scene,camera); }

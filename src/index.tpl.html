@@ -4,10 +4,10 @@
 <canvas id="gl"></canvas>
 <section id="title"><div class="tc"><img id="tLogo" alt="MoneyBot"><div class="eye">A MoneyBot world</div><h1>Bot City<br><span>Bowling Green</span></h1>
 <p>Fountain Square, the Hill, Scottsville Road, the river and I-65, rebuilt with bots. Every landmark is a door into a MoneyVerse game. Drive around, run deliveries, find all 60 coins.</p>
-<button class="btn pri big" id="go" disabled>Loading the city…</button><small>WASD / arrows move · drag to look · <b>E</b> interact · <b>M</b> map · <b>J</b> jobs · <b>N</b> day/night · Shift = faster</small></div></section>
+<button class="btn pri big" id="go" disabled>Loading the city…</button><small>WASD / arrows move · drag to look · <b>E</b> interact · <b>M</b> map · <b>J</b> jetpack (Space up) · <b>B</b> jobs · <b>N</b> day/night · Shift = faster</small></div></section>
 <header id="hud" hidden><div class="st"><em>Wallet</em><b id="hCash">$0</b></div><div class="st"><em>Savings</em><b id="hSave">$0</b></div><div class="st"><em>Coins</em><b id="hCoins">0/60</b></div><div class="st fuel"><em>Gas</em><i><u id="hFuel"></u></i></div><div class="st"><em>Location</em><b id="hWhere">Bowling Green</b></div><button class="btn sm" onclick="bigMap()">🗺️ Map</button><button class="btn sm" onclick="jobBoard()">🍔 Jobs</button><button class="btn sm" id="btnTod" onclick="setTOD({day:'golden',golden:'night',night:'day'}[FX.tod])">🌇 Golden hour</button><button class="btn sm" id="btnQ" onclick="setQuality(FX.quality==='high'?'low':'high')">✨ High</button></header>
 <canvas id="mini" width="220" height="220" hidden></canvas><div id="hSpd" hidden></div><div id="hGps" hidden></div>
 <div id="prompt" hidden></div><div id="toasts"></div><div id="modal" hidden><div id="mc"></div></div>
-<div id="pads"><div><button data-k="left">◀</button><button data-k="right">▶</button></div><div><button data-k="e">E</button><button data-k="brake">▼</button><button data-k="gas">▲</button></div></div>
+<div id="pads"><div><button data-k="left">◀</button><button data-k="right">▶</button></div><div><button data-k="j">🚀</button><button data-k="jet">⤒</button><button data-k="e">E</button><button data-k="brake">▼</button><button data-k="gas">▲</button></div></div>
 <script src="vendor/three/three.min.js"></script><script src="vendor/three/GLTFLoader.js"></script><script src="vendor/three/SkeletonUtils.js"></script><script src="moneybot-assets.js"></script>
 <script>/*JS*/</script></body></html>

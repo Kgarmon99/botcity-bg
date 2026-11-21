@@ -60,9 +60,9 @@ const isKept=(x,z,pad=0)=>keepOut.some(k=>Math.hypot(x-k.x,z-k.z)<k.r+pad);
 
 /* ---------- colliders (axis-aligned boxes, spatial hashed) ---------- */
 const COL=new Map(), CC=24;
-function addCol(x0,z0,x1,z1){ const b={x0:Math.min(x0,x1),z0:Math.min(z0,z1),x1:Math.max(x0,x1),z1:Math.max(z0,z1)}; for(let i=Math.floor(b.x0/CC);i<=Math.floor(b.x1/CC);i++) for(let j=Math.floor(b.z0/CC);j<=Math.floor(b.z1/CC);j++){ const k=i+','+j; if(!COL.has(k)) COL.set(k,[]); COL.get(k).push(b); } }
+function addCol(x0,z0,x1,z1,top){ const b={x0:Math.min(x0,x1),z0:Math.min(z0,z1),x1:Math.max(x0,x1),z1:Math.max(z0,z1)}; b.top=top!=null?top:H((x0+x1)/2,(z0+z1)/2)+26; for(let i=Math.floor(b.x0/CC);i<=Math.floor(b.x1/CC);i++) for(let j=Math.floor(b.z0/CC);j<=Math.floor(b.z1/CC);j++){ const k=i+','+j; if(!COL.has(k)) COL.set(k,[]); COL.get(k).push(b); } }
 function collide(p,rad){ const L=COL.get(Math.floor(p.x/CC)+','+Math.floor(p.z/CC)); let hit=false; if(!L) return false;
-  for(const b of L){ const cx=clamp(p.x,b.x0,b.x1), cz=clamp(p.z,b.z0,b.z1), dx=p.x-cx, dz=p.z-cz, d=Math.hypot(dx,dz); if(d<rad){ hit=true; if(d>1e-4){ p.x=cx+dx/d*rad; p.z=cz+dz/d*rad; } else { const ox=Math.min(p.x-b.x0,b.x1-p.x), oz=Math.min(p.z-b.z0,b.z1-p.z); if(ox<oz) p.x=(p.x-b.x0<b.x1-p.x)?b.x0-rad:b.x1+rad; else p.z=(p.z-b.z0<b.z1-p.z)?b.z0-rad:b.z1+rad; } } } return hit; }
+  for(const b of L){ if(p.y!=null&&p.y>b.top-.4) continue; const cx=clamp(p.x,b.x0,b.x1), cz=clamp(p.z,b.z0,b.z1), dx=p.x-cx, dz=p.z-cz, d=Math.hypot(dx,dz); if(d<rad){ hit=true; if(d>1e-4){ p.x=cx+dx/d*rad; p.z=cz+dz/d*rad; } else { const ox=Math.min(p.x-b.x0,b.x1-p.x), oz=Math.min(p.z-b.z0,b.z1-p.z); if(ox<oz) p.x=(p.x-b.x0<b.x1-p.x)?b.x0-rad:b.x1+rad; else p.z=(p.z-b.z0<b.z1-p.z)?b.z0-rad:b.z1+rad; } } } return hit; }
 
 /* ---------- textures ---------- */
 function canvasTex(w,h,draw,rep){ const c=document.createElement('canvas'); c.width=w; c.height=h; draw(c.getContext('2d'),w,h); const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; t.anisotropy=8; if(rep){ t.wrapS=t.wrapT=THREE.RepeatWrapping; } return t; }
@@ -131,7 +131,7 @@ function buildBuildings(){ const occ=new Set(), cell=4; const free=(x,z,w,d)=>{ 
     const s=nr.s, ry=s?Math.atan2(s.dx,s.dz):0; take(x,z,w+2,d+2); const y=H(x,z)-.6;
     if(kind==='house'){ HB.push({x,y,z,w,h,d,ry,c:col}); RF.push({x,y:y+h,z,w:w+.8,h:h*.5,d:d+.8,ry,c:pick(['#7C4A3A','#4B5563','#6B4F3A','#374151','#8B3A3A'])}); }
     else B.push({x,y,z,w,h,d,ry,c:col});
-    const r=Math.max(w,d)/2*.92; addCol(x-r,z-r,x+r,z+r); return true; };
+    const r=Math.max(w,d)/2*.92; addCol(x-r,z-r,x+r,z+r,y+h+(kind==='house'?h*.25:0)); return true; };
   /* frontage: walk every road and line it with buildings */
   SEGS.forEach(s=>{ const kind=s.r.kind, down=(x,z)=>Math.abs(x)<160&&Math.abs(z)<160; if(kind==='hwy') return;
     for(let u=4;u<s.L-4;u+=kind==='res'?13:9){ for(const side of [-1,1]){ const px=s.x0+s.dx*u, pz=s.z0+s.dz*u, nx=-s.dz*side, nz=s.dx*side;
@@ -285,14 +285,16 @@ function buildCivic(){ const GA=REAL.grid.ga, brick=mat('#A0523D'), cream=mat('#
 /* ---------- landmarks, hand built ---------- */
 function L$(id){ return LANDMARKS.find(l=>l.id===id); }
 function grp(l,ry=0){ const g=new THREE.Group(); g.position.set(l.x,H(l.x,l.z)-.2,l.z); g.rotation.y=ry; scene.add(g); l.g=g; return g; }
-function colBox(l,w,d){ addCol(l.x-w/2,l.z-d/2,l.x+w/2,l.z+d/2); }
+function colBox(l,w,d,h){ addCol(l.x-w/2,l.z-d/2,l.x+w/2,l.z+d/2,h!=null?H(l.x,l.z)+h:undefined); }
+/* highest walkable surface under (x,z) at or below height y: terrain or a rooftop */
+function floorAt(x,z,y){ let f=H(x,z); const L=COL.get(Math.floor(x/CC)+','+Math.floor(z/CC)); if(L) for(const b of L){ if(x>=b.x0&&x<=b.x1&&z>=b.z0&&z<=b.z1&&b.top<=y+.5&&b.top>f) f=b.top; } return f; }
 function buildLandmarks(){ const brick=mat('#A0523D'), cream=mat('#EFE6D6'), slate=mat('#475569'), glass=GLASS, white=mat('#F8FAFC'), gold=mat('#D4A017',{metalness:.6,roughness:.3}), green=mat('#2F6B3A');
   buildSquare(); buildCivic();
   /* BotBank: columned bank on the square */
   { const l=L$('botbank'), g=grp(l,Math.PI); bx(g,26,14,18,0,0,0,cream); bx(g,28,1.4,20,0,14,0,white); const tri=new THREE.Mesh(new THREE.CylinderGeometry(15,15,20,3,1),white); tri.rotation.z=Math.PI/2; tri.scale.set(.25,1,1); tri.position.set(0,16,0); g.add(tri);
     for(let i=-3;i<=3;i++) cy(g,.8,12,i*3.6,0,10.4,white); bx(g,26,.8,4,0,0,10.6,mat('#D1D5DB')); sign(g,[{t:'BotBank',size:96,color:'#FFFFFF'}],12,2.4,0,13,11.2,{bg:'#1D4ED8',r:16}); sign(g,[{t:'presented by American Bank & Trust',size:40,color:'#1E3A8A'}],12,1.1,0,11.3,11.2,{bg:'#E0E7FF',r:10}); colBox(l,26,18); }
   /* BotPark tower: glass startup tower */
-  { const l=L$('botpark'), g=grp(l); bx(g,16,6,16,0,0,0,slate); bx(g,14,44,14,0,6,0,glass); bx(g,14.4,.8,14.4,0,22,0,mat('#A855F7',{emissive:'#7C3AED',emissiveIntensity:.6})); bx(g,14.4,.8,14.4,0,36,0,mat('#A855F7',{emissive:'#7C3AED',emissiveIntensity:.6})); sign(g,[{t:'BotPark',size:90,color:'#FFFFFF'}],10,2.2,0,47,7.1,{bg:'#6D28D9',r:14,glow:.5}); colBox(l,16,16); }
+  { const l=L$('botpark'), g=grp(l); bx(g,16,6,16,0,0,0,slate); bx(g,14,44,14,0,6,0,glass); bx(g,14.4,.8,14.4,0,22,0,mat('#A855F7',{emissive:'#7C3AED',emissiveIntensity:.6})); bx(g,14.4,.8,14.4,0,36,0,mat('#A855F7',{emissive:'#7C3AED',emissiveIntensity:.6})); sign(g,[{t:'BotPark',size:90,color:'#FFFFFF'}],10,2.2,0,47,7.1,{bg:'#6D28D9',r:14,glow:.5}); colBox(l,16,16,51); }
   /* WKU hilltop: Cherry Hall + cupola, bell tower, arena */
   { const l=L$('botu'), g=grp(l); bx(g,30,12,14,0,0,0,brick); for(let i=-3;i<=3;i++) cy(g,.7,10,i*3.4,0,7.6,white); bx(g,30,1.2,16,0,12,0,white); const tri=new THREE.Mesh(new THREE.CylinderGeometry(9,9,16,3,1),white); tri.rotation.z=Math.PI/2; tri.scale.set(.22,1,1); tri.position.set(0,14,0); tri.rotation.y=Math.PI/2; g.add(tri);
     cy(g,2.4,5,0,15,0,white); const dome=new THREE.Mesh(new THREE.SphereGeometry(2.6,24,12,0,Math.PI*2,0,Math.PI/2),gold); dome.position.y=20; g.add(dome); cy(g,.15,3,0,22.4,0,gold);

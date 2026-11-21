@@ -30,7 +30,7 @@ kbd{background:var(--gold);color:#3A2400;border-radius:6px;padding:1px 7px;margi
 <p>Fountain Square, the Hill, Scottsville Road, the river and I-65, rebuilt with bots. Every landmark is a door into a MoneyVerse game. Drive around, run deliveries, find all 60 coins.</p>
 <button class="btn pri big" id="go" disabled>Loading the city…</button><small>WASD / arrows move · drag to look · <b>E</b> interact · <b>M</b> map · <b>J</b> jobs · Shift = faster</small></div></section>
 <header id="hud" hidden><div class="st"><em>Wallet</em><b id="hCash">$0</b></div><div class="st"><em>Savings</em><b id="hSave">$0</b></div><div class="st"><em>Coins</em><b id="hCoins">0/60</b></div><div class="st fuel"><em>Gas</em><i><u id="hFuel"></u></i></div><div class="st"><em>Location</em><b id="hWhere">Bowling Green</b></div><button class="btn sm" onclick="bigMap()">🗺️ Map</button><button class="btn sm" onclick="jobBoard()">🍔 Jobs</button></header>
-<canvas id="mini" width="220" height="220"></canvas><div id="hSpd"></div><div id="hGps" hidden></div>
+<canvas id="mini" width="220" height="220" hidden></canvas><div id="hSpd" hidden></div><div id="hGps" hidden></div>
 <div id="prompt" hidden></div><div id="toasts"></div><div id="modal" hidden><div id="mc"></div></div>
 <div id="pads"><div><button data-k="left">◀</button><button data-k="right">▶</button></div><div><button data-k="e">E</button><button data-k="brake">▼</button><button data-k="gas">▲</button></div></div>
 <script>/**
@@ -4499,48 +4499,30 @@ function initThree(){
   addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
 }
 
+const REAL={"roads": [{"name": "Scottsville Rd", "kind": "major", "pts": [[-6.5, 149.6], [56.3, 281.1], [136.3, 450.3], [142.8, 464.7], [152.7, 478.7], [168.4, 483.4]]}, {"name": "Broadway / 12th Ave", "kind": "street", "pts": [[-94.8, 56.1], [-72.7, 81.9], [-6.5, 149.6]]}, {"name": "University Blvd", "kind": "major", "pts": [[-68.2, -95.3], [-232.6, 64.0], [-290.1, 166.1], [-289.8, 188.6], [-265.8, 233.3], [-252.4, 247.7], [-216.2, 272.6]]}, {"name": "Nashville Rd", "kind": "major", "pts": [[-216.2, 272.6], [-223.9, 297.2], [-243.4, 319.0], [-257.4, 372.9], [-269.4, 400.2], [-270.3, 422.9], [-271.8, 434.6]]}, {"name": "Kentucky St", "kind": "major", "pts": [[-48.6, -72.2], [41.1, -140.0], [73.9, -152.4], [147.9, -199.5], [126.6, -241.5], [124.1, -289.7], [128.7, -298.5], [163.1, -312.4], [233.4, -318.3]]}, {"name": "Beech Bend Rd", "kind": "major", "pts": [[233.4, -318.3], [279.3, -350.2], [310.2, -328.8], [335.1, -318.1], [343.5, -311.9], [344.8, -314.4], [339.3, -329.6], [344.1, -329.4]]}, {"name": "Louisville Rd", "kind": "major", "pts": [[138.2, -195.4], [268.2, -239.9], [351.8, -222.8], [385.7, -206.1], [405.4, -202.1], [437.5, -153.8], [449.2, -124.3], [473.9, -78.2], [482.7, -58.9]]}, {"name": "Corvette Dr", "kind": "major", "pts": [[482.7, -58.9], [485.5, -70.8], [483.9, -88.7], [489.2, -92.8], [490.0, -107.5], [491.4, -108.9]]}, {"name": "Campbell Ln", "kind": "major", "pts": [[-269.8, 404.4], [-196.4, 445.2], [-153.3, 464.8], [-139.5, 469.5], [-61.2, 485.6], [-39.0, 487.4], [23.2, 489.3], [53.4, 486.1], [113.9, 473.3]]}, {"name": "I-65", "kind": "hwy", "pts": [[-17.3, 515.7], [152.7, 478.7], [238.2, 428.4], [353.6, 323.0], [480.8, 12.5], [489.2, -92.8], [477.1, -184.4], [454.0, -248.6]]}, {"name": "College Heights Blvd", "kind": "street", "pts": [[-5.6, -19.7], [-170.2, 121.0], [-181.5, 112.9], [-199.9, 106.9], [-208.0, 124.7], [-196.3, 139.2], [-177.7, 132.1], [-164.8, 154.5], [-151.2, 143.7], [-191.4, 93.7], [-213.0, 96.0], [-234.5, 130.9], [-251.2, 153.8]]}, {"name": "6th Ave", "kind": "street", "pts": [[157.6, 83.0], [153.7, 76.4], [149.8, 69.8], [145.8, 63.0], [141.7, 56.1], [137.5, 49.0], [133.1, 41.9], [128.7, 34.6], [124.2, 27.2], [119.5, 19.6], [114.8, 12.0], [109.9, 4.2], [104.9, -3.6], [99.7, -11.6], [94.5, -19.6], [89.1, -27.6], [83.6, -35.7], [77.9, -43.8], [72.2, -51.8], [66.4, -59.8], [60.6, -67.7], [54.7, -75.5], [48.8, -83.2], [42.9, -90.8], [37.0, -98.2], [31.1, -105.4], [25.4, -112.6], [19.6, -119.5], [14.0, -126.3], [8.4, -133.0], [2.9, -139.5], [-2.5, -145.9], [-7.8, -152.2], [-13.0, -158.3], [-18.2, -164.3], [-23.2, -170.1], [-28.2, -175.8]]}, {"name": "7th Ave", "kind": "street", "pts": [[137.5, 99.5], [133.6, 93.1], [129.5, 86.6], [125.3, 79.9], [121.0, 73.1], [116.7, 66.2], [112.2, 59.1], [107.6, 51.8], [103.0, 44.5], [98.2, 37.0], [93.3, 29.3], [88.3, 21.6], [83.1, 13.7], [77.9, 5.6], [72.5, -2.5], [67.0, -10.7], [61.3, -19.0], [55.5, -27.3], [49.6, -35.6], [43.7, -43.9], [37.6, -52.0], [31.6, -60.0], [25.6, -67.9], [19.6, -75.6], [13.7, -83.1], [7.8, -90.5], [2.0, -97.8], [-3.6, -104.9], [-9.2, -111.8], [-14.7, -118.6], [-20.1, -125.2], [-25.3, -131.7], [-30.5, -138.1], [-35.6, -144.3], [-40.6, -150.4], [-45.5, -156.3], [-50.3, -162.2]]}, {"name": "Main Ave", "kind": "street", "pts": [[116.6, 116.0], [112.4, 109.7], [108.1, 103.3], [103.8, 96.8], [99.3, 90.1], [94.7, 83.3], [90.1, 76.4], [85.4, 69.3], [80.5, 62.1], [75.5, 54.7], [70.5, 47.1], [65.3, 39.4], [60.0, 31.6], [54.6, 23.6], [49.1, 15.4], [43.4, 7.1], [37.6, -1.3], [31.7, -9.8], [25.6, -18.4], [19.4, -26.9], [13.3, -35.2], [7.1, -43.4], [1.1, -51.4], [-4.9, -59.3], [-10.7, -67.0], [-16.5, -74.5], [-22.1, -81.9], [-27.6, -89.1], [-33.0, -96.1], [-38.4, -103.0], [-43.6, -109.8], [-48.6, -116.4], [-53.6, -122.9], [-58.5, -129.3], [-63.3, -135.5], [-68.0, -141.6], [-72.6, -147.5]]}, {"name": "Park Row", "kind": "street", "pts": [[72.6, 147.5], [68.0, 141.6], [63.3, 135.5], [58.5, 129.3], [53.6, 122.9], [48.6, 116.4], [43.6, 109.8], [38.4, 103.0], [33.0, 96.1], [27.6, 89.1], [22.1, 81.9], [16.5, 74.5], [10.7, 67.0], [4.9, 59.3], [-1.1, 51.4], [-7.1, 43.4], [-13.3, 35.2], [-19.4, 26.9], [-25.6, 18.4], [-31.7, 9.8], [-37.6, 1.3], [-43.4, -7.1], [-49.1, -15.4], [-54.6, -23.6], [-60.0, -31.6], [-65.3, -39.4], [-70.5, -47.1], [-75.5, -54.7], [-80.5, -62.1], [-85.4, -69.3], [-90.1, -76.4], [-94.7, -83.3], [-99.3, -90.1], [-103.8, -96.8], [-108.1, -103.3], [-112.4, -109.7], [-116.6, -116.0]]}, {"name": "10th Ave", "kind": "street", "pts": [[50.3, 162.2], [45.5, 156.3], [40.6, 150.4], [35.6, 144.3], [30.5, 138.1], [25.3, 131.7], [20.1, 125.2], [14.7, 118.6], [9.2, 111.8], [3.6, 104.9], [-2.0, 97.8], [-7.8, 90.5], [-13.7, 83.1], [-19.6, 75.6], [-25.6, 67.9], [-31.6, 60.0], [-37.6, 52.0], [-43.7, 43.9], [-49.6, 35.6], [-55.5, 27.3], [-61.3, 19.0], [-67.0, 10.7], [-72.5, 2.5], [-77.9, -5.6], [-83.1, -13.7], [-88.3, -21.6], [-93.3, -29.3], [-98.2, -37.0], [-103.0, -44.5], [-107.6, -51.8], [-112.2, -59.1], [-116.7, -66.2], [-121.0, -73.1], [-125.3, -79.9], [-129.5, -86.6], [-133.6, -93.1], [-137.5, -99.5]]}, {"name": "12th Ave", "kind": "street", "pts": [[28.2, 175.8], [23.2, 170.1], [18.2, 164.3], [13.0, 158.3], [7.8, 152.2], [2.5, 145.9], [-2.9, 139.5], [-8.4, 133.0], [-14.0, 126.3], [-19.6, 119.5], [-25.4, 112.6], [-31.1, 105.4], [-37.0, 98.2], [-42.9, 90.8], [-48.8, 83.2], [-54.7, 75.5], [-60.6, 67.7], [-66.4, 59.8], [-72.2, 51.8], [-77.9, 43.8], [-83.6, 35.7], [-89.1, 27.6], [-94.5, 19.6], [-99.7, 11.6], [-104.9, 3.6], [-109.9, -4.2], [-114.8, -12.0], [-119.5, -19.6], [-124.2, -27.2], [-128.7, -34.6], [-133.1, -41.9], [-137.5, -49.0], [-141.7, -56.1], [-145.8, -63.0], [-149.8, -69.8], [-153.7, -76.4], [-157.6, -83.0]]}, {"name": "13th Ave", "kind": "street", "pts": [[6.5, 188.6], [1.4, 182.9], [-3.7, 177.2], [-8.9, 171.3], [-14.3, 165.3], [-19.6, 159.1], [-25.1, 152.8], [-30.6, 146.4], [-36.2, 139.8], [-41.9, 133.1], [-47.6, 126.3], [-53.3, 119.3], [-59.1, 112.2], [-64.8, 105.0], [-70.6, 97.6], [-76.4, 90.1], [-82.1, 82.5], [-87.8, 74.8], [-93.4, 67.1], [-99.0, 59.3], [-104.4, 51.4], [-109.8, 43.6], [-115.1, 35.7], [-120.2, 27.9], [-125.2, 20.1], [-130.1, 12.3], [-134.9, 4.7], [-139.5, -2.9], [-144.1, -10.4], [-148.5, -17.8], [-152.8, -25.1], [-157.0, -32.3], [-161.1, -39.4], [-165.1, -46.3], [-169.0, -53.2], [-172.8, -59.9], [-176.6, -66.5]]}, {"name": "14th Ave", "kind": "street", "pts": [[-14.5, 200.3], [-19.6, 194.8], [-24.8, 189.1], [-30.1, 183.3], [-35.5, 177.4], [-40.9, 171.3], [-46.3, 165.1], [-51.8, 158.8], [-57.4, 152.4], [-63.0, 145.8], [-68.6, 139.1], [-74.3, 132.3], [-79.9, 125.3], [-85.6, 118.2], [-91.2, 111.0], [-96.8, 103.8], [-102.4, 96.4], [-107.9, 88.9], [-113.4, 81.4], [-118.8, 73.8], [-124.1, 66.2], [-129.3, 58.5], [-134.4, 50.9], [-139.4, 43.2], [-144.3, 35.6], [-149.1, 28.0], [-153.7, 20.5], [-158.3, 13.0], [-162.7, 5.6], [-167.0, -1.7], [-171.3, -8.9], [-175.4, -16.1], [-179.4, -23.2], [-183.3, -30.1], [-187.1, -37.0], [-190.8, -43.7], [-194.4, -50.4]]}, {"name": "Street", "kind": "street", "pts": [[171.3, 8.9], [165.3, 14.3], [159.1, 19.6], [152.8, 25.1], [146.4, 30.6], [139.8, 36.2], [133.1, 41.9], [126.3, 47.6], [119.3, 53.3], [112.2, 59.1], [105.0, 64.8], [97.6, 70.6], [90.1, 76.4], [82.5, 82.1], [74.8, 87.8], [67.1, 93.4], [59.3, 99.0], [51.4, 104.4], [43.6, 109.8], [35.7, 115.1], [27.9, 120.2], [20.1, 125.2], [12.3, 130.1], [4.7, 134.9], [-2.9, 139.5], [-10.4, 144.1], [-17.8, 148.5], [-25.1, 152.8], [-32.3, 157.0], [-39.4, 161.1], [-46.3, 165.1]]}, {"name": "Street", "kind": "street", "pts": [[158.3, -13.0], [152.2, -7.8], [145.9, -2.5], [139.5, 2.9], [133.0, 8.4], [126.3, 14.0], [119.5, 19.6], [112.6, 25.4], [105.4, 31.1], [98.2, 37.0], [90.8, 42.9], [83.2, 48.8], [75.5, 54.7], [67.7, 60.6], [59.8, 66.4], [51.8, 72.2], [43.8, 77.9], [35.7, 83.6], [27.6, 89.1], [19.6, 94.5], [11.6, 99.7], [3.6, 104.9], [-4.2, 109.9], [-12.0, 114.8], [-19.6, 119.5], [-27.2, 124.2], [-34.6, 128.7], [-41.9, 133.1], [-49.0, 137.5], [-56.1, 141.7], [-63.0, 145.8]]}, {"name": "Center St", "kind": "street", "pts": [[144.3, -35.6], [138.1, -30.5], [131.7, -25.3], [125.2, -20.1], [118.6, -14.7], [111.8, -9.2], [104.9, -3.6], [97.8, 2.0], [90.5, 7.8], [83.1, 13.7], [75.6, 19.6], [67.9, 25.6], [60.0, 31.6], [52.0, 37.6], [43.9, 43.7], [35.6, 49.6], [27.3, 55.5], [19.0, 61.3], [10.7, 67.0], [2.5, 72.5], [-5.6, 77.9], [-13.7, 83.1], [-21.6, 88.3], [-29.3, 93.3], [-37.0, 98.2], [-44.5, 103.0], [-51.8, 107.6], [-59.1, 112.2], [-66.2, 116.7], [-73.1, 121.0], [-79.9, 125.3]]}, {"name": "College St", "kind": "street", "pts": [[129.3, -58.5], [122.9, -53.6], [116.4, -48.6], [109.8, -43.6], [103.0, -38.4], [96.1, -33.0], [89.1, -27.6], [81.9, -22.1], [74.5, -16.5], [67.0, -10.7], [59.3, -4.9], [51.4, 1.1], [43.4, 7.1], [35.2, 13.3], [26.9, 19.4], [18.4, 25.6], [9.8, 31.7], [1.3, 37.6], [-7.1, 43.4], [-15.4, 49.1], [-23.6, 54.6], [-31.6, 60.0], [-39.4, 65.3], [-47.1, 70.5], [-54.7, 75.5], [-62.1, 80.5], [-69.3, 85.4], [-76.4, 90.1], [-83.3, 94.7], [-90.1, 99.3], [-96.8, 103.8]]}, {"name": "State St", "kind": "street", "pts": [[96.8, -103.8], [90.1, -99.3], [83.3, -94.7], [76.4, -90.1], [69.3, -85.4], [62.1, -80.5], [54.7, -75.5], [47.1, -70.5], [39.4, -65.3], [31.6, -60.0], [23.6, -54.6], [15.4, -49.1], [7.1, -43.4], [-1.3, -37.6], [-9.8, -31.7], [-18.4, -25.6], [-26.9, -19.4], [-35.2, -13.3], [-43.4, -7.1], [-51.4, -1.1], [-59.3, 4.9], [-67.0, 10.7], [-74.5, 16.5], [-81.9, 22.1], [-89.1, 27.6], [-96.1, 33.0], [-103.0, 38.4], [-109.8, 43.6], [-116.4, 48.6], [-122.9, 53.6], [-129.3, 58.5]]}, {"name": "Kentucky St", "kind": "street", "pts": [[79.9, -125.3], [73.1, -121.0], [66.2, -116.7], [59.1, -112.2], [51.8, -107.6], [44.5, -103.0], [37.0, -98.2], [29.3, -93.3], [21.6, -88.3], [13.7, -83.1], [5.6, -77.9], [-2.5, -72.5], [-10.7, -67.0], [-19.0, -61.3], [-27.3, -55.5], [-35.6, -49.6], [-43.9, -43.7], [-52.0, -37.6], [-60.0, -31.6], [-67.9, -25.6], [-75.6, -19.6], [-83.1, -13.7], [-90.5, -7.8], [-97.8, -2.0], [-104.9, 3.6], [-111.8, 9.2], [-118.6, 14.7], [-125.2, 20.1], [-131.7, 25.3], [-138.1, 30.5], [-144.3, 35.6]]}, {"name": "Adams St", "kind": "street", "pts": [[63.0, -145.8], [56.1, -141.7], [49.0, -137.5], [41.9, -133.1], [34.6, -128.7], [27.2, -124.2], [19.6, -119.5], [12.0, -114.8], [4.2, -109.9], [-3.6, -104.9], [-11.6, -99.7], [-19.6, -94.5], [-27.6, -89.1], [-35.7, -83.6], [-43.8, -77.9], [-51.8, -72.2], [-59.8, -66.4], [-67.7, -60.6], [-75.5, -54.7], [-83.2, -48.8], [-90.8, -42.9], [-98.2, -37.0], [-105.4, -31.1], [-112.6, -25.4], [-119.5, -19.6], [-126.3, -14.0], [-133.0, -8.4], [-139.5, -2.9], [-145.9, 2.5], [-152.2, 7.8], [-158.3, 13.0]]}, {"name": "Park St", "kind": "street", "pts": [[46.3, -165.1], [39.4, -161.1], [32.3, -157.0], [25.1, -152.8], [17.8, -148.5], [10.4, -144.1], [2.9, -139.5], [-4.7, -134.9], [-12.3, -130.1], [-20.1, -125.2], [-27.9, -120.2], [-35.7, -115.1], [-43.6, -109.8], [-51.4, -104.4], [-59.3, -99.0], [-67.1, -93.4], [-74.8, -87.8], [-82.5, -82.1], [-90.1, -76.4], [-97.6, -70.6], [-105.0, -64.8], [-112.2, -59.1], [-119.3, -53.3], [-126.3, -47.6], [-133.1, -41.9], [-139.8, -36.2], [-146.4, -30.6], [-152.8, -25.1], [-159.1, -19.6], [-165.3, -14.3], [-171.3, -8.9]]}, {"name": "Street", "kind": "street", "pts": [[30.1, -183.3], [23.2, -179.4], [16.1, -175.4], [8.9, -171.3], [1.7, -167.0], [-5.6, -162.7], [-13.0, -158.3], [-20.5, -153.7], [-28.0, -149.1], [-35.6, -144.3], [-43.2, -139.4], [-50.9, -134.4], [-58.5, -129.3], [-66.2, -124.1], [-73.8, -118.8], [-81.4, -113.4], [-88.9, -107.9], [-96.4, -102.4], [-103.8, -96.8], [-111.0, -91.2], [-118.2, -85.6], [-125.3, -79.9], [-132.3, -74.3], [-139.1, -68.6], [-145.8, -63.0], [-152.4, -57.4], [-158.8, -51.8], [-165.1, -46.3], [-171.3, -40.9], [-177.4, -35.5], [-183.3, -30.1]]}, {"name": "Fountain Square", "kind": "square", "pts": [[22.0, 3.6], [3.6, -22.0], [-22.0, -3.6], [-3.6, 22.0], [22.0, 3.6]]}], "lm": {"square": [0.0, 0.0], "botlife": [0.0, 0.0], "ballpark": [-1.5, -89.3], "skypac": [58.5, -80.8], "botu": [-175.7, 128.6], "arena": [-257.2, 135.8], "med": [202.2, -63.1], "botbank": [56.3, 281.1], "botpark": [111.2, -23.7], "fyp": [135.9, 103.6], "botmotors": [116.8, 409.2], "tycoon": [116.2, 465.0], "botmarket": [-37.6, 489.4], "cave": [-265.6, 403.2], "beech": [337.9, -338.4], "museum": [484.2, -99.8], "botfactory": [487.1, -129.4], "gas1": [-63.5, 190.4], "gas2": [120.5, 434.4], "bridge": [162.5, -312.2], "tower": [-162.3, 117.6]}, "river": [[-503.7, 25.2], [-458.7, -44.9], [-317.3, -180.5], [-104.1, -277.9], [81.9, -293.0], [162.1, -317.4], [223.2, -349.3], [254.8, -386.3], [293.3, -384.7], [349.4, -345.3], [399.8, -283.3], [436.8, -226.5], [459.5, -206.9], [470.5, -212.6]], "hill": [-197.6, 136.5], "au": [-0.5831219341959687, -0.8123846440323403], "av": [-0.8123846440323403, 0.5831219341959687]};
+
 /* ===================== Bot City: Bowling Green · the map =====================
    x = east, z = south (north is -z). 1 unit ≈ 4 m. Hand-laid from real geography:
    Fountain Square downtown at the origin, WKU on its hill to the southwest, the Barren River
    to the north, Scottsville Road running southeast, I-65 on the east side. */
 
-const HILL={x:-150, z:80, r:62, h:24};
-const riverZ=x=>-232+36*Math.sin(x/115)+12*Math.sin(x/37+1);
+const HILL={x:REAL.hill[0], z:REAL.hill[1], r:46, h:22};
+const RIV=REAL.river; function riverD(x,z){ let b=1e9; for(let i=0;i<RIV.length-1;i++){ const [x0,z0]=RIV[i],[x1,z1]=RIV[i+1], dx=x1-x0, dz=z1-z0, l2=dx*dx+dz*dz, t=Math.max(0,Math.min(1,((x-x0)*dx+(z-z0)*dz)/l2)); b=Math.min(b,Math.hypot(x-x0-dx*t,z-z0-dz*t)); } return b; }
+const LMR=REAL.lm, WARP=(xm,zm)=>{ const r=Math.hypot(xm,zm); if(r<1e-6) return [0,0]; const k=520*(1-Math.exp(-r/2000))/r; return [xm*k,zm*k]; };
 function H(x,z){ let y=HILL.h*Math.exp(-((x-HILL.x)**2+(z-HILL.z)**2)/(2*HILL.r*HILL.r));
   y+=1.1*Math.sin(x/70)*Math.cos(z/90)*(Math.abs(x)<160&&Math.abs(z)<160?.2:1);
-  const dr=Math.abs(z-riverZ(x)); if(dr<30) y-=(1-dr/30)**2*5;
-  y+=7*Math.exp(-((x+112)**2+(z-342)**2)/(2*16*16));
+  const dr=riverD(x,z); if(dr<30) y-=(1-dr/30)**2*5;
+  y+=7*Math.exp(-((x-LMR.cave[0])**2+(z-LMR.cave[1]+8)**2)/(2*16*16));
   return y; }
 
 /* ---------- roads (polylines) ---------- */
 const ROADS=[];
 const road=(name,w,pts,kind='street')=>ROADS.push({name,w,pts,kind});
-road('Fountain Square',11,[[-27,-27],[27,-27],[27,27],[-27,27],[-27,-27]],'square');
-road('College St',11,[[27,-150],[27,-27],[27,27],[27,160]]);
-road('State St',11,[[-27,-150],[-27,-27],[-27,27],[-27,140]]);
-road('Main St',11,[[-150,-27],[-27,-27],[27,-27],[170,-27]]);
-road('Park Row',11,[[-110,27],[-27,27],[27,27],[170,27]]);
-road('6th Ave',10,[[-120,-82],[160,-82]]);
-road('12th Ave',10,[[-90,82],[150,82]]);
-road('Kentucky St',10,[[82,-150],[82,150]]);
-road('Center St',10,[[-82,-150],[-82,20]]);
-road('Adams St',10,[[140,-150],[140,140]]);
-road('Louisville Rd',13,[[27,-150],[34,-200],[40,-240],[38,-290],[30,-420]],'major');
-road('Beech Bend Rd',11,[[38,-300],[-20,-312],[-90,-318]],'major');
-road('US 31-W Bypass',14,[[-300,-110],[-210,-165],[-100,-190],[34,-185],[170,-160],[245,-70],[255,50],[215,170],[110,215],[-30,215],[-150,200],[-250,170]],'major');
-road('Scottsville Rd',14,[[27,82],[82,120],[140,170],[205,215],[270,270],[330,335],[370,420]],'major');
-road('Nashville Rd',13,[[-27,140],[-50,215],[-90,290],[-140,420]],'major');
-road('Russellville Rd',13,[[-150,-27],[-260,-45],[-420,-60]],'major');
-road('Campbell Ln',13,[[-150,330],[-30,300],[110,268],[240,262],[330,250],[420,240]],'major');
-road('I-65',19,[[300,-440],[345,-180],[372,0],[392,180],[410,440]],'hwy');
-road('Corvette Dr',12,[[245,-70],[300,-55],[362,-50]],'major');
-road('College Heights Blvd',11,[[-27,60],[-70,62],[-105,58],[-128,48]]);
-road('Hilltop Loop',10,[[-128,48],[-150,40],[-176,52],[-186,78],[-176,104],[-150,114],[-124,104],[-114,80],[-128,48]],'square');
-road('Normal Dr',10,[[-176,104],[-205,140],[-250,170]]);
-/* residential grids */
-for(const [x0,x1,z0,z1,step,tag] of [[60,200,-150,-100,30,'NE'],[170,235,-40,140,30,'E'],[-280,-200,-150,-60,30,'W'],[-60,100,240,290,32,'S'],[-320,-230,200,300,32,'SW']]){
-  for(let x=x0;x<=x1;x+=step) road(tag+' '+x,8,[[x,z0],[x,z1]],'res'); for(let z=z0;z<=z1;z+=step) road(tag+' z'+z,8,[[x0,z]].concat([[x1,z]]),'res'); }
-
+REAL.roads.forEach(r=>road(r.name,{hwy:19,major:13,street:8.5,square:9}[r.kind]||9,r.pts,r.kind));
+/* neighborhoods: small street grids (meters from the square, warped like the real map) */
+[[1300,650,.5],[1900,1500,.2],[-1700,1300,.9],[-1300,-150,.1],[700,1900,.7],[2700,900,.3],[-700,2600,.4],[1400,-1000,.6],[-2300,300,.2],[3200,2200,.5],[-2600,2200,.8],[300,-1700,.3]].forEach(([cx,cz,rot],n)=>{
+  const ux=Math.cos(rot), uz=Math.sin(rot), S=120, K=4;
+  for(let a=0;a<2;a++) for(let i=-K/2;i<=K/2;i++){ const pts=[]; for(let t=-K/2;t<=K/2;t+=.5){ const xm=cx+(a?ux*t*S-uz*i*S:ux*i*S-uz*t*S), zm=cz+(a?uz*t*S+ux*i*S:uz*i*S+ux*t*S), [x,z]=WARP(xm,zm); if(riverD(x,z)<22||Math.hypot(x-HILL.x,z-HILL.z)<40){ if(pts.length>1) road('Res '+n,7.5,pts.slice(),'res'); pts.length=0; continue; } pts.push([x,z]); } if(pts.length>1) road('Res '+n,7.5,pts,'res'); } });
 /* segments for fast distance queries */
 const SEGS=[]; ROADS.forEach((r,ri)=>{ for(let i=0;i<r.pts.length-1;i++){ const [x0,z0]=r.pts[i],[x1,z1]=r.pts[i+1], L=Math.hypot(x1-x0,z1-z0); SEGS.push({r, ri, x0,z0,x1,z1,L,dx:(x1-x0)/L,dz:(z1-z0)/L}); } });
 const SG=new Map(), SGC=40; SEGS.forEach(s=>{ const ax=Math.floor((Math.min(s.x0,s.x1)-12)/SGC), bx=Math.floor((Math.max(s.x0,s.x1)+12)/SGC), az=Math.floor((Math.min(s.z0,s.z1)-12)/SGC), bz=Math.floor((Math.max(s.z0,s.z1)+12)/SGC); for(let i=ax;i<=bx;i++) for(let j=az;j<=bz;j++){ const k=i+','+j; if(!SG.has(k)) SG.set(k,[]); SG.get(k).push(s); } });
@@ -4549,29 +4531,29 @@ const roadY=(x,z)=>Math.max(H(x,z),-.35)+.06;
 
 /* ---------- landmarks + game doors ---------- */
 const LANDMARKS=[
- {id:'square', name:'Fountain Square Park', x:0, z:0, r:24, kind:'park'},
- {id:'botlife', name:'BotLife', game:true, x:0, z:14, url:'https://the-come-up-phi.vercel.app/', col:'#00E676', blurb:'The open-world MoneyBot life sim. Jobs, rent, a phone, and your whole money story.'},
- {id:'botbank', name:'BotBank', game:true, x:48, z:-46, url:'https://botbank-five.vercel.app', col:'#3B82F6', sponsor:'Presented by American Bank & Trust', blurb:'Run a bank: deposits, loans, interest and the occasional bank run.'},
- {id:'botpark', name:'BotPark Tower', game:true, x:-56, z:-56, url:'https://botstudio-rho.vercel.app', col:'#A855F7', blurb:'Build a startup from one desk to a whole tower. Games, web, AI and cyber clients.'},
- {id:'botu', name:'BotU at the Hill', game:true, x:-150, z:84, url:'https://botu-theta.vercel.app', col:'#EF4444', blurb:'College money life: FAFSA, loans, budgets, and picking a major that pays off.'},
- {id:'fyp', name:'Junior Achievement · Find Your Path', game:true, x:112, z:112, url:'https://find-your-path-beta.vercel.app', col:'#22C55E', blurb:'Explore Kentucky careers and colleges with Junior Achievement of South Central Kentucky.'},
- {id:'botmotors', name:'Bot City Motors', game:true, x:162, z:206, url:'https://kgarmon99.github.io/botmotors/', col:'#F59E0B', blurb:'Buy your first car without getting played. Then run the dealership yourself.'},
- {id:'tycoon', name:'Greenwood Bot Mall', game:true, x:232, z:300, url:'https://kgarmon99.github.io/bot-tycoon/', col:'#EC4899', blurb:'Bot Tycoon: build a money empire one business at a time.'},
- {id:'botmarket', name:'BotMarket', game:true, x:318, z:348, url:'https://botmarket-kappa.vercel.app', col:'#10B981', blurb:'Run a grocery store: pricing, suppliers, waste, competition, profit.'},
- {id:'botfactory', name:'BotFactory', game:true, x:318, z:-96, url:'https://kgarmon99.github.io/botfactory/', col:'#F97316', blurb:'Build the line, beat the bottleneck, and grow a factory huge.'},
- {id:'museum', name:'National Bot-Car Museum', x:330, z:-8, kind:'museum'},
- {id:'ballpark', name:'Bot Rods Ballpark', x:110, z:-56, kind:'ballpark'},
- {id:'skypac', name:'SKyPAC', x:58, z:54, kind:'skypac'},
- {id:'cave', name:'Lost River Cave', x:-112, z:338, kind:'cave'},
- {id:'beech', name:'Beech Bend Raceway', x:-70, z:-372, kind:'raceway'},
- {id:'med', name:'Med Center', x:-58, z:120, kind:'hospital'},
- {id:'river', name:'Barren River', x:38, z:-236, kind:'bridge'},
- {id:'gas1', name:'Bot Gas · Downtown', x:120, z:-6, kind:'gas'},
- {id:'gas2', name:'Bot Gas · Scottsville Rd', x:228, z:228, kind:'gas'},
+ {id:'square', name:'Fountain Square Park', x:LMR.square[0], z:LMR.square[1], r:13, kind:'park'},
+ {id:'botlife', name:'BotLife', game:true, x:LMR.botlife[0], z:LMR.botlife[1]+9, url:'https://the-come-up-phi.vercel.app/', col:'#00E676', blurb:'The open-world MoneyBot life sim. Jobs, rent, a phone, and your whole money story.'},
+ {id:'botbank', name:'BotBank', game:true, x:LMR.botbank[0], z:LMR.botbank[1], url:'https://botbank-five.vercel.app', col:'#3B82F6', sponsor:'Presented by American Bank & Trust', blurb:'Run a bank: deposits, loans, interest and the occasional bank run.'},
+ {id:'botpark', name:'BotPark Tower', game:true, x:LMR.botpark[0], z:LMR.botpark[1], url:'https://botstudio-rho.vercel.app', col:'#A855F7', blurb:'Build a startup from one desk to a whole tower. Games, web, AI and cyber clients.'},
+ {id:'botu', name:'BotU at the Hill', game:true, x:LMR.botu[0], z:LMR.botu[1], url:'https://botu-theta.vercel.app', col:'#EF4444', blurb:'College money life: FAFSA, loans, budgets, and picking a major that pays off.'},
+ {id:'fyp', name:'Junior Achievement · Find Your Path', game:true, x:LMR.fyp[0], z:LMR.fyp[1], url:'https://find-your-path-beta.vercel.app', col:'#22C55E', blurb:'Explore Kentucky careers and colleges with Junior Achievement of South Central Kentucky.'},
+ {id:'botmotors', name:'Bot City Motors', game:true, x:LMR.botmotors[0], z:LMR.botmotors[1], url:'https://kgarmon99.github.io/botmotors/', col:'#F59E0B', blurb:'Buy your first car without getting played. Then run the dealership yourself.'},
+ {id:'tycoon', name:'Greenwood Bot Mall', game:true, x:LMR.tycoon[0], z:LMR.tycoon[1], url:'https://kgarmon99.github.io/bot-tycoon/', col:'#EC4899', blurb:'Bot Tycoon: build a money empire one business at a time.'},
+ {id:'botmarket', name:'BotMarket', game:true, x:LMR.botmarket[0], z:LMR.botmarket[1], url:'https://botmarket-kappa.vercel.app', col:'#10B981', blurb:'Run a grocery store: pricing, suppliers, waste, competition, profit.'},
+ {id:'botfactory', name:'BotFactory', game:true, x:LMR.botfactory[0], z:LMR.botfactory[1], url:'https://kgarmon99.github.io/botfactory/', col:'#F97316', blurb:'Build the line, beat the bottleneck, and grow a factory huge.'},
+ {id:'museum', name:'National Bot-Car Museum', x:LMR.museum[0], z:LMR.museum[1], kind:'museum'},
+ {id:'ballpark', name:'Bot Rods Ballpark', x:LMR.ballpark[0], z:LMR.ballpark[1], kind:'ballpark'},
+ {id:'skypac', name:'SKyPAC', x:LMR.skypac[0], z:LMR.skypac[1], kind:'skypac'},
+ {id:'cave', name:'Lost River Cave', x:LMR.cave[0], z:LMR.cave[1], kind:'cave'},
+ {id:'beech', name:'Beech Bend Raceway', x:LMR.beech[0], z:LMR.beech[1], kind:'raceway'},
+ {id:'med', name:'Med Center', x:LMR.med[0], z:LMR.med[1], kind:'hospital'},
+ {id:'river', name:'Barren River', x:LMR.bridge[0], z:LMR.bridge[1], kind:'bridge'},
+ {id:'gas1', name:'Bot Gas · Downtown', x:LMR.gas1[0], z:LMR.gas1[1], kind:'gas'},
+ {id:'gas2', name:'Bot Gas · Scottsville Rd', x:LMR.gas2[0], z:LMR.gas2[1], kind:'gas'},
 ];
 const keepOut=[]; /* areas generators must leave empty */
 LANDMARKS.forEach(l=>keepOut.push({x:l.x,z:l.z,r:l.r||(l.game?22:20)}));
-keepOut.push({x:HILL.x,z:HILL.z,r:58},{x:330,z:-60,r:55},{x:232,z:300,r:40},{x:-70,z:-372,r:52});
+keepOut.push({x:HILL.x,z:HILL.z,r:44},{x:LMR.botfactory[0],z:LMR.botfactory[1],r:50},{x:LMR.tycoon[0],z:LMR.tycoon[1],r:40},{x:LMR.beech[0],z:LMR.beech[1],r:52},{x:LMR.arena[0],z:LMR.arena[1],r:22},{x:LMR.tower[0],z:LMR.tower[1],r:8});
 const isKept=(x,z,pad=0)=>keepOut.some(k=>Math.hypot(x-k.x,z-k.z)<k.r+pad);
 
 /* ---------- colliders (axis-aligned boxes, spatial hashed) ---------- */
@@ -4591,13 +4573,14 @@ function buildCity(){
   scene.background=canvasTex(4,256,(g,w,h)=>{ const gr=g.createLinearGradient(0,0,0,h); gr.addColorStop(0,'#3E8ED0'); gr.addColorStop(.55,'#93CDEF'); gr.addColorStop(1,'#E8F4FA'); g.fillStyle=gr; g.fillRect(0,0,w,h); });
   scene.fog=new THREE.Fog('#CFE6F3',220,700); camera.far=1500; camera.updateProjectionMatrix();
   /* ground */
-  const G=new THREE.PlaneGeometry(1000,1000,250,250); G.rotateX(-Math.PI/2); const pos=G.attributes.position, colr=[]; const c=new THREE.Color();
-  for(let i=0;i<pos.count;i++){ const x=pos.getX(i), z=pos.getZ(i), y=H(x,z); pos.setY(i,y); const n=Math.sin(x*.07)*Math.cos(z*.05)*.5+.5, down=Math.abs(x)<150&&Math.abs(z)<150, bank=Math.abs(z-riverZ(x))<34;
+  const G=new THREE.PlaneGeometry(1240,1240,300,300); G.rotateX(-Math.PI/2); const pos=G.attributes.position, colr=[]; const c=new THREE.Color();
+  for(let i=0;i<pos.count;i++){ const x=pos.getX(i), z=pos.getZ(i), y=H(x,z); pos.setY(i,y); const n=Math.sin(x*.07)*Math.cos(z*.05)*.5+.5, down=Math.abs(x)<150&&Math.abs(z)<150, bank=riverD(x,z)<34;
     c.set(bank?'#7A9B57':down?'#86A86A':'#6FA34F').lerp(new THREE.Color('#8DBE5A'),n*.45); if(y>8) c.lerp(new THREE.Color('#5E9644'),.3); c.convertSRGBToLinear(); colr.push(c.r,c.g,c.b); }
   G.setAttribute('color',new THREE.Float32BufferAttribute(colr,3)); G.computeVertexNormals();
   const ground=new THREE.Mesh(G,new THREE.MeshStandardMaterial({vertexColors:true, roughness:.95})); ground.receiveShadow=true; scene.add(ground);
   /* river */
-  const rv=[], ri=[]; let k=0; for(let x=-520;x<=520;x+=8){ const z=riverZ(x); rv.push(x,-1.25,z-17, x,-1.25,z+17); if(k) ri.push(2*k-2,2*k-1,2*k, 2*k-1,2*k+1,2*k); k++; }
+  const rv=[], ri=[]; let k=0; const RP=[]; for(let i=0;i<RIV.length-1;i++){ const [x0,z0]=RIV[i],[x1,z1]=RIV[i+1], n=Math.max(1,Math.ceil(Math.hypot(x1-x0,z1-z0)/6)); for(let j=0;j<n;j++) RP.push([x0+(x1-x0)*j/n,z0+(z1-z0)*j/n]); } RP.push(RIV[RIV.length-1]);
+  RP.forEach((p,i)=>{ const a=RP[Math.max(0,i-1)], b=RP[Math.min(RP.length-1,i+1)]; let dx=b[0]-a[0], dz=b[1]-a[1]; const l=Math.hypot(dx,dz)||1; dx/=l; dz/=l; rv.push(p[0]-dz*17,-1.25,p[1]+dx*17, p[0]+dz*17,-1.25,p[1]-dx*17); if(i){ const q=2*i; ri.push(q-2,q,q-1, q-1,q,q+1); } });
   const RG=new THREE.BufferGeometry(); RG.setAttribute('position',new THREE.Float32BufferAttribute(rv,3)); RG.setIndex(ri); RG.computeVertexNormals();
   const water=new THREE.Mesh(RG,new THREE.MeshStandardMaterial({color:'#2F7FB5', roughness:.12, metalness:.3, transparent:true, opacity:.9, envMap:W.env||null})); scene.add(water); W.water=water;
   buildRoads(); buildLandmarks(); buildBuildings(); buildTrees(); buildLights(); buildExtras();
@@ -4609,7 +4592,7 @@ function ribbon(pts,w,y0,stepLen,out){ const P=[]; for(let i=0;i<pts.length-1;i+
     if(i){ const q=base+2*i; out.idx.push(q-2,q,q-1, q-1,q,q+1); } });
   return P; }
 function buildRoads(){ const tex=ROADTEX(), side={pos:[],uv:[],idx:[]}, top={pos:[],uv:[],idx:[]}, bridges=[];
-  ROADS.forEach((r,i)=>{ if(r.kind!=='hwy'&&r.kind!=='res') ribbon(r.pts,r.w+5,-.03,5,side); const P=ribbon(r.pts,r.w,.004*(i%7),5,top); P.forEach(p=>{ if(H(p[0],p[1])<-.6) bridges.push([p[0],p[1],r.w]); }); });
+  ROADS.forEach((r,i)=>{ if(r.kind!=='hwy'&&r.kind!=='res') ribbon(r.pts,r.w+4,-.03,5,side); const P=ribbon(r.pts,r.w,.004*(i%7),5,top); P.forEach(p=>{ if(H(p[0],p[1])<-.6) bridges.push([p[0],p[1],r.w]); }); });
   const mk=(d,m)=>{ const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(d.pos,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(d.uv,2)); g.setIndex(d.idx); g.setAttribute('normal',new THREE.Float32BufferAttribute(new Float32Array(d.pos.length).map((v,i)=>i%3===1?1:0),3)); const m2=new THREE.Mesh(g,m); m2.receiveShadow=true; scene.add(m2); return m2; };
   mk(side,new THREE.MeshStandardMaterial({color:'#C9CED6', roughness:.9}));
   mk(top,new THREE.MeshStandardMaterial({map:tex, roughness:.85, polygonOffset:true, polygonOffsetFactor:-2}));
@@ -4637,7 +4620,7 @@ function buildBuildings(){ const occ=new Set(), cell=4; const free=(x,z,w,d)=>{ 
   const take=(x,z,w,d)=>{ for(let i=Math.floor((x-w/2)/cell);i<=Math.floor((x+w/2)/cell);i++) for(let j=Math.floor((z-d/2)/cell);j<=Math.floor((z+d/2)/cell);j++) occ.add(i+','+j); };
   const brick=['#9A4A3A','#B5654B','#C9A27E','#8C5A44','#D8C3A5','#A3553F','#7D8B94','#C7B299','#E2D3BF','#6E7F8A'], shop=['#F1E6D2','#DCE7E9','#F3D9C6','#E8E2F2','#D8EBD9'], house=['#F5EFE6','#E3ECF2','#F2E1C9','#DDE8D5','#EBD8D8','#E9E4F5','#C9D6DF'];
   const B=[], HB=[], RF=[];
-  const tryPlace=(x,z,w,d,h,col,kind)=>{ if(isKept(x,z,Math.max(w,d)/2+2)) return false; const nr=nearRoad(x,z); if(nr.d<Math.max(w,d)/2+1.5) return false; if(Math.abs(z-riverZ(x))<42) return false; if(!free(x,z,w+2,d+2)) return false;
+  const tryPlace=(x,z,w,d,h,col,kind)=>{ if(isKept(x,z,Math.max(w,d)/2+2)) return false; const nr=nearRoad(x,z); if(nr.d<Math.max(w,d)/2+1.5) return false; if(riverD(x,z)<36) return false; if(!free(x,z,w+2,d+2)) return false;
     const s=nr.s, ry=s?Math.atan2(s.dx,s.dz):0; take(x,z,w+2,d+2); const y=H(x,z)-.6;
     if(kind==='house'){ HB.push({x,y,z,w,h,d,ry,c:col}); RF.push({x,y:y+h,z,w:w+.8,h:h*.5,d:d+.8,ry,c:pick(['#7C4A3A','#4B5563','#6B4F3A','#374151','#8B3A3A'])}); }
     else B.push({x,y,z,w,h,d,ry,c:col});
@@ -4649,7 +4632,7 @@ function buildBuildings(){ const occ=new Set(), cell=4; const free=(x,z,w,d)=>{ 
       if(down(px,pz)){ const w=rand(7,11), d=rand(8,12), off=s.r.w/2+2.6+d/2; tryPlace(px+nx*off,pz+nz*off,w,d,rand(7,19)*(Math.hypot(px,pz)<70?1.25:1),pick(brick)); }
       else if(kind==='major'&&Math.random()<.55){ const w=rand(12,24), d=rand(12,20), off=s.r.w/2+9+d/2; tryPlace(px+nx*off,pz+nz*off,w,d,rand(5,9),pick(shop)); } } } });
   /* extra houses scattered off the grid edges */
-  for(let i=0;i<900;i++){ const x=rand(-470,470), z=rand(-470,470); const nr=nearRoad(x,z); if(nr.d>6&&nr.d<20&&!(Math.abs(x)<160&&Math.abs(z)<160)) tryPlace(x,z,rand(6,8),rand(6,8),rand(4,5.5),pick(house),'house'); }
+  for(let i=0;i<2600;i++){ const x=rand(-560,560), z=rand(-560,560); const nr=nearRoad(x,z); if(nr.d>6&&nr.d<20&&!(Math.abs(x)<160&&Math.abs(z)<160)) tryPlace(x,z,rand(6,8),rand(6,8),rand(4,5.5),pick(house),'house'); }
   instBoxes(B,windowMat()); instBoxes(HB,windowMat({wx:3.2,wy:4.6}));
   /* details that sell it: cornices, shop awnings, storefront glass, rooftop units, water towers */
   const CN=[], AW=[], SF=[], RU=[]; const aw=['#B91C1C','#15803D','#1D4ED8','#B45309','#7C3AED','#0F766E','#BE185D'];
@@ -4663,7 +4646,7 @@ function buildBuildings(){ const occ=new Set(), cell=4; const free=(x,z,w,d)=>{ 
   const rim=new THREE.InstancedMesh(prism,mat('#ffffff',{roughness:.8, flatShading:true}),RF.length), o=new THREE.Object3D(), c=new THREE.Color(); RF.forEach((b,i)=>{ o.position.set(b.x,b.y+b.h/2,b.z); o.rotation.set(0,b.ry,0); o.scale.set(b.w,b.h,b.d); o.updateMatrix(); rim.setMatrixAt(i,o.matrix); rim.setColorAt(i,c.set(b.c)); }); rim.castShadow=true; scene.add(rim);
   W.stats={buildings:B.length, houses:HB.length}; }
 
-function buildTrees(){ const T=[], cell=new Set(); for(let i=0;i<5200&&T.length<(MOBILE?900:1700);i++){ const x=rand(-490,490), z=rand(-490,490); const hill=Math.hypot(x-HILL.x,z-HILL.z)<70, bank=Math.abs(z-riverZ(x))<55&&Math.abs(z-riverZ(x))>19, park=Math.hypot(x,z)<20&&Math.hypot(x,z)>11;
+function buildTrees(){ const T=[], cell=new Set(); for(let i=0;i<5200&&T.length<(MOBILE?1100:2400);i++){ const x=rand(-590,590), z=rand(-590,590); const hill=Math.hypot(x-HILL.x,z-HILL.z)<70, bank=(()=>{ const d=riverD(x,z); return d<55&&d>19; })(), park=Math.hypot(x,z)<11.5&&Math.hypot(x,z)>8;
     const down=Math.abs(x)<150&&Math.abs(z)<150; if(down&&!park&&Math.random()<.85) continue; if(!(hill||bank||park)&&Math.random()<.45) continue;
     const nr=nearRoad(x,z); if(nr.d<3) continue; const k=Math.floor(x/3)+','+Math.floor(z/3); if(cell.has(k)) continue; if(COL.get(Math.floor(x/CC)+','+Math.floor(z/CC))?.some(b=>x>b.x0-1&&x<b.x1+1&&z>b.z0-1&&z<b.z1+1)) continue; cell.add(k);
     if(LANDMARKS.some(l=>l.game&&Math.hypot(x-l.x,z-l.z)<16)) continue; T.push({x,z,y:H(x,z),s:rand(.8,1.5)}); }
@@ -4673,7 +4656,7 @@ function buildTrees(){ const T=[], cell=new Set(); for(let i=0;i<5200&&T.length<
   trunk.castShadow=crown.castShadow=true; scene.add(trunk,crown); }
 
 function buildExtras(){ const zeb=mat('#F8FAFC',{roughness:.8, polygonOffset:true, polygonOffsetFactor:-4});
-  const xs=[-82,-27,27,82,140], zs=[-82,-27,27,82]; xs.forEach(x=>zs.forEach(z=>{ if(nearRoad(x,z).d>0) return; for(const [ox,oz,v] of [[0,-7,0],[0,7,0],[-7,0,1],[7,0,1]]) for(let i=-2;i<=2;i++){ const m=new THREE.Mesh(BOX,zeb); m.scale.set(v?3.4:.7,.04,v?.7:3.4); m.position.set(x+ox+(v?0:i*1.4),roadY(x+ox,z+oz)+.14,z+oz+(v?i*1.4:0)); scene.add(m); } }));
+  const XI=[]; for(let i=-3;i<=5;i++) for(let j=-4;j<=5;j++){ const [x,z]=WARP(REAL.av[0]*i*125+REAL.au[0]*j*125, REAL.av[1]*i*125+REAL.au[1]*j*125); XI.push([x,z]); } const GA=Math.atan2(REAL.au[0],REAL.au[1]); XI.forEach(([x,z])=>{ if(nearRoad(x,z).d>-2) return; const cw=new THREE.Group(); cw.position.set(x,0,z); cw.rotation.y=GA; scene.add(cw); for(const [ox,oz,v] of [[0,-7,0],[0,7,0],[-7,0,1],[7,0,1]]) for(let i=-1;i<=1;i++){ const m=new THREE.Mesh(BOX,zeb); m.scale.set(v?3.4:.7,.04,v?.7:3.4); m.position.set(ox+(v?0:i*1.4),roadY(x,z)+.14,oz+(v?i*1.4:0)); cw.add(m); } });
   /* green street-name signs at the start of every named road */
   const pole=mat('#475569'); ROADS.filter(r=>r.kind!=='res'&&r.kind!=='square').forEach(r=>{ [0,r.pts.length-2].forEach(i=>{ const [x0,z0]=r.pts[i],[x1,z1]=r.pts[i+1], L=Math.hypot(x1-x0,z1-z0); const t=i?1-8/L:8/L, x=x0+(x1-x0)*t+(z1-z0)/L*(r.w/2+1.5), z=z0+(z1-z0)*t-(x1-x0)/L*(r.w/2+1.5); if(H(x,z)<-.5) return;
     const g=new THREE.Group(); g.position.set(x,roadY(x,z),z); g.rotation.y=Math.atan2(x1-x0,z1-z0)+Math.PI/2; scene.add(g); cy(g,.08,4.2,0,0,0,pole); sign(g,[{t:r.name,size:58,color:'#FFFFFF'}],Math.min(5.2,1.2+r.name.length*.26),.62,0,4.2,0,{bg:r.kind==='hwy'?'#1D4ED8':'#15803D',r:8,w:640,h:96}); }); });
@@ -4683,7 +4666,7 @@ function buildExtras(){ const zeb=mat('#F8FAFC',{roughness:.8, polygonOffset:tru
   const sp=[], sm=new THREE.MeshBasicMaterial({color:'#DBEAFE',transparent:true,opacity:.7}), sg=new THREE.SphereGeometry(.12,6,4); for(let i=0;i<70;i++){ const m=new THREE.Mesh(sg,sm); scene.add(m); sp.push({m,t:Math.random()*1.4,a:Math.random()*7}); }
   const fy=H(0,0)+5.6; W.anim.push(t=>{ sp.forEach(p=>{ const k=((t+p.t)%1.4)/1.4, r=k*3.4; p.m.position.set(Math.cos(p.a)*r,fy+k*3.2-k*k*5.2,Math.sin(p.a)*r); }); });
   /* flags around the square */
-  [[-20,-20],[20,-20],[20,20],[-20,20]].forEach(([x,z],i)=>{ const g=new THREE.Group(); g.position.set(x,H(x,z),z); scene.add(g); cy(g,.08,9,0,0,0,mat('#E5E7EB',{metalness:.6})); const f=new THREE.Mesh(new THREE.PlaneGeometry(2.6,1.6,8,1),new THREE.MeshStandardMaterial({color:i%2?'#1E3A8A':'#00C853',side:THREE.DoubleSide})); f.position.set(1.35,8.1,0); g.add(f); const P=f.geometry.attributes.position, base=P.array.slice();
+  [[-10,-10],[10,-10],[10,10],[-10,10]].forEach(([x,z],i)=>{ const g=new THREE.Group(); g.position.set(x,H(x,z),z); scene.add(g); cy(g,.08,9,0,0,0,mat('#E5E7EB',{metalness:.6})); const f=new THREE.Mesh(new THREE.PlaneGeometry(2.6,1.6,8,1),new THREE.MeshStandardMaterial({color:i%2?'#1E3A8A':'#00C853',side:THREE.DoubleSide})); f.position.set(1.35,8.1,0); g.add(f); const P=f.geometry.attributes.position, base=P.array.slice();
     W.anim.push(t=>{ for(let v=0;v<P.count;v++){ const x=base[v*3]; P.setZ(v,Math.sin(t*4+x*2+i)*.18*(x+1.3)); } P.needsUpdate=true; }); });
 }
 function buildLights(){ const L=[]; SEGS.forEach(s=>{ if(s.r.kind==='res'||s.r.kind==='hwy') return; for(let u=10;u<s.L;u+=28){ const side=(u/28|0)%2?1:-1, x=s.x0+s.dx*u-s.dz*side*(s.r.w/2+1.6), z=s.z0+s.dz*u+s.dx*side*(s.r.w/2+1.6); if(H(x,z)<-.5) continue; L.push({x,z,y:roadY(x,z)}); } });
@@ -4696,11 +4679,12 @@ function grp(l,ry=0){ const g=new THREE.Group(); g.position.set(l.x,H(l.x,l.z)-.
 function colBox(l,w,d){ addCol(l.x-w/2,l.z-d/2,l.x+w/2,l.z+d/2); }
 function buildLandmarks(){ const brick=mat('#A0523D'), cream=mat('#EFE6D6'), slate=mat('#475569'), glass=GLASS, white=mat('#F8FAFC'), gold=mat('#D4A017',{metalness:.6,roughness:.3}), green=mat('#2F6B3A');
   /* Fountain Square: park, fountain, gazebo */
-  { const g=grp(L$('square')); const lawn=new THREE.Mesh(new THREE.CylinderGeometry(21,21,.3,48),mat('#5FA548')); lawn.position.y=.1; lawn.receiveShadow=true; g.add(lawn);
-    const path=mat('#D6D3CB'); [0,Math.PI/2].forEach(r=>{ const p=new THREE.Mesh(BOX,path); p.scale.set(42,.34,3.4); p.rotation.y=r; p.position.y=.12; g.add(p); });
+  { const g=grp(L$('square')); const lawn=new THREE.Mesh(new THREE.CylinderGeometry(12.5,12.5,.3,48),mat('#5FA548')); lawn.position.y=.1; lawn.receiveShadow=true; g.add(lawn);
+    const path=mat('#D6D3CB'); [0,Math.PI/2].forEach(r=>{ const p=new THREE.Mesh(BOX,path); p.scale.set(25,.34,2.4); p.rotation.y=r; p.position.y=.12; g.add(p); });
     const basin=new THREE.Mesh(new THREE.CylinderGeometry(6,6.4,1,40),mat('#BFC5CC')); basin.position.y=.5; g.add(basin); const pool=new THREE.Mesh(new THREE.CylinderGeometry(5.5,5.5,.2,40),new THREE.MeshStandardMaterial({color:'#3B9AD9',roughness:.1,metalness:.3})); pool.position.y=1; g.add(pool);
     cy(g,.6,4,0,1,0,mat('#9CA3AF')); const bowl=new THREE.Mesh(new THREE.CylinderGeometry(2.2,.8,.8,24),mat('#BFC5CC')); bowl.position.y=4.2; g.add(bowl); const statue=new THREE.Mesh(SPH,MB.coin); statue.scale.setScalar(.9); statue.position.y=5.6; g.add(statue);
-    W.fountain=g; colBox({x:0,z:0},12,12); }
+    W.fountain=g; colBox({x:0,z:0},12,12);
+    const tr={x:7,z:-9}; W.truck=tr; const t=new THREE.Group(); t.position.set(tr.x,H(tr.x,tr.z),tr.z); t.rotation.y=.6; scene.add(t); bx(t,5.4,2.6,2.4,0,.5,0,mat('#F97316')); bx(t,1.6,1.8,2.3,3.3,.5,0,mat('#FDBA74')); [-1.6,1.8].forEach(x=>[-1.2,1.2].forEach(z=>{ const w=new THREE.Mesh(new THREE.CylinderGeometry(.45,.45,.3,12),mat('#111827')); w.rotation.x=Math.PI/2; w.position.set(x,.45,z); t.add(w); })); sign(t,[{t:'🍔 BOT EATS',size:70,color:'#FFFFFF'}],3.6,.8,0,3.6,1.25,{bg:'#B91C1C',r:10}); }
   /* BotBank: columned bank on the square */
   { const l=L$('botbank'), g=grp(l,Math.PI); bx(g,26,14,18,0,0,0,cream); bx(g,28,1.4,20,0,14,0,white); const tri=new THREE.Mesh(new THREE.CylinderGeometry(15,15,20,3,1),white); tri.rotation.z=Math.PI/2; tri.scale.set(.25,1,1); tri.position.set(0,16,0); g.add(tri);
     for(let i=-3;i<=3;i++) cy(g,.8,12,i*3.6,0,10.4,white); bx(g,26,.8,4,0,0,10.6,mat('#D1D5DB')); sign(g,[{t:'BotBank',size:96,color:'#FFFFFF'}],12,2.4,0,13,11.2,{bg:'#1D4ED8',r:16}); sign(g,[{t:'presented by American Bank & Trust',size:40,color:'#1E3A8A'}],12,1.1,0,11.3,11.2,{bg:'#E0E7FF',r:10}); colBox(l,26,18); }
@@ -4710,11 +4694,11 @@ function buildLandmarks(){ const brick=mat('#A0523D'), cream=mat('#EFE6D6'), sla
   { const l=L$('botu'), g=grp(l); bx(g,30,12,14,0,0,0,brick); for(let i=-3;i<=3;i++) cy(g,.7,10,i*3.4,0,7.6,white); bx(g,30,1.2,16,0,12,0,white); const tri=new THREE.Mesh(new THREE.CylinderGeometry(9,9,16,3,1),white); tri.rotation.z=Math.PI/2; tri.scale.set(.22,1,1); tri.position.set(0,14,0); tri.rotation.y=Math.PI/2; g.add(tri);
     cy(g,2.4,5,0,15,0,white); const dome=new THREE.Mesh(new THREE.SphereGeometry(2.6,24,12,0,Math.PI*2,0,Math.PI/2),gold); dome.position.y=20; g.add(dome); cy(g,.15,3,0,22.4,0,gold);
     sign(g,[{t:'BotU',size:96,color:'#FFFFFF'},{t:'on the Hill',size:44,color:'#FECACA'}],8,2.6,0,9.5,7.2,{bg:'#B91C1C',r:14}); colBox(l,30,14);
-    const tw={x:-118,z:96}, t=new THREE.Group(); t.position.set(tw.x,H(tw.x,tw.z)-.2,tw.z); scene.add(t); bx(t,5,26,5,0,0,0,brick); bx(t,5.6,4,5.6,0,26,0,white); const sp=new THREE.Mesh(new THREE.ConeGeometry(3.4,6,4),slate); sp.rotation.y=Math.PI/4; sp.position.y=33; t.add(sp); addCol(tw.x-3,tw.z-3,tw.x+3,tw.z+3);
-    const ar={x:-198,z:126}, a=new THREE.Group(); a.position.set(ar.x,H(ar.x,ar.z)-.5,ar.z); scene.add(a); const arena=new THREE.Mesh(new THREE.CylinderGeometry(18,20,10,32),mat('#C8CDD3')); arena.position.y=5; a.add(arena); const ring=new THREE.Mesh(new THREE.CylinderGeometry(18.2,18.2,2,32,1,true),mat('#B91C1C')); ring.position.y=8; a.add(ring); addCol(ar.x-18,ar.z-18,ar.x+18,ar.z+18);
+    const tw={x:LMR.tower[0],z:LMR.tower[1]}, t=new THREE.Group(); t.position.set(tw.x,H(tw.x,tw.z)-.2,tw.z); scene.add(t); bx(t,5,26,5,0,0,0,brick); bx(t,5.6,4,5.6,0,26,0,white); const sp=new THREE.Mesh(new THREE.ConeGeometry(3.4,6,4),slate); sp.rotation.y=Math.PI/4; sp.position.y=33; t.add(sp); addCol(tw.x-3,tw.z-3,tw.x+3,tw.z+3);
+    const ar={x:LMR.arena[0],z:LMR.arena[1]}, a=new THREE.Group(); a.position.set(ar.x,H(ar.x,ar.z)-.5,ar.z); scene.add(a); const arena=new THREE.Mesh(new THREE.CylinderGeometry(18,20,10,32),mat('#C8CDD3')); arena.position.y=5; a.add(arena); const ring=new THREE.Mesh(new THREE.CylinderGeometry(18.2,18.2,2,32,1,true),mat('#B91C1C')); ring.position.y=8; a.add(ring); addCol(ar.x-18,ar.z-18,ar.x+18,ar.z+18);
     sign(a,[{t:'BOT ARENA',size:80,color:'#FFFFFF'}],12,2,0,8,18.4,{bg:'#B91C1C',r:10}); }
   /* Ballpark */
-  { const l=L$('ballpark'), g=grp(l); const field=new THREE.Mesh(new THREE.CircleGeometry(26,40,Math.PI*.25,Math.PI*.5),mat('#4C9A3F')); field.rotation.x=-Math.PI/2; field.position.y=.15; g.add(field);
+  { const l=L$('ballpark'), g=grp(l); g.scale.setScalar(.7); const field=new THREE.Mesh(new THREE.CircleGeometry(26,40,Math.PI*.25,Math.PI*.5),mat('#4C9A3F')); field.rotation.x=-Math.PI/2; field.position.y=.15; g.add(field);
     const dirt=new THREE.Mesh(new THREE.CircleGeometry(9,24,Math.PI*.25,Math.PI*.5),mat('#B7793E')); dirt.rotation.x=-Math.PI/2; dirt.position.y=.2; g.add(dirt);
     for(let a=0;a<6;a++){ const s=new THREE.Mesh(BOX,mat(a%2?'#1E3A8A':'#DC2626')); const ang=Math.PI*.25+a/5*Math.PI*.5; s.scale.set(10,5+a%2,4); s.position.set(Math.cos(ang)*-0+Math.sin(ang)*0,2.5,0); s.position.set(Math.cos(ang)*-30*-1,2.5,-Math.sin(ang)*30*-1); s.lookAt(0,2.5,0); g.add(s); }
     [[-28,-28],[28,-28]].forEach(([x,z])=>{ cy(g,.4,22,x,0,z,mat('#94A3B8')); bx(g,5,3,1,x,21,z,mat('#F8FAFC',{emissive:'#FFFFFF',emissiveIntensity:.4})); });
@@ -4754,7 +4738,7 @@ function buildLandmarks(){ const brick=mat('#A0523D'), cream=mat('#EFE6D6'), sla
   ['gas1','gas2'].forEach(id=>{ const l=L$(id), g=grp(l); bx(g,16,.5,10,0,5.5,0,mat('#F8FAFC')); [-5,0,5].forEach(x=>{ cy(g,.25,5.5,x,0,-3,mat('#CBD5E1')); bx(g,1,1.6,.8,x,0,1.5,mat('#16A34A')); }); bx(g,10,5,7,0,0,-12,mat('#E5E7EB'));
     sign(g,[{t:'⛽ BOT GAS',size:80,color:'#FFFFFF'}],8,1.6,0,7.2,5.1,{bg:'#16A34A',r:10}); addCol(l.x-5,l.z-16,l.x+5,l.z-8); });
   /* city welcome sign */
-  { const g=new THREE.Group(); const x=46,z=-262; g.position.set(x,roadY(x,z),z); g.rotation.y=Math.PI; scene.add(g); [-5,5].forEach(s=>cy(g,.3,5,s,0,0,slate)); sign(g,[{t:'Welcome to',size:44,color:'#14532D'},{t:'BOWLING GREEN',size:84,color:'#14532D'},{t:'a MoneyBot city',size:40,color:'#166534'}],12,4,0,5,0,{bg:'#F0FDF4',r:14,w:768,h:256}); }
+  { const g=new THREE.Group(); const x=LMR.bridge[0]-14,z=LMR.bridge[1]+22; g.position.set(x,roadY(x,z),z); g.rotation.y=Math.PI*.8; scene.add(g); [-5,5].forEach(s=>cy(g,.3,5,s,0,0,slate)); sign(g,[{t:'Welcome to',size:44,color:'#14532D'},{t:'BOWLING GREEN',size:84,color:'#14532D'},{t:'a MoneyBot city',size:40,color:'#166534'}],12,4,0,5,0,{bg:'#F0FDF4',r:14,w:768,h:256}); }
 }
 
 /* ===================== Bot City: Bowling Green · play ===================== */
@@ -4771,11 +4755,11 @@ function closeModal(){ $('#modal').hidden=true; G.modal=false; }
 /* ---------- boot ---------- */
 async function boot(){ initThree(); setupMaterials(); $('#tLogo').src=MB_ASSETS.logo; buildCity();
   GLTF.crowd=await parseGLB(MB_ASSETS.crowd);
-  G.you=makeRig(GLTF.crowd, MB.you, 1.9,'g'); G.you.root.add(blob(1)); scene.add(G.you.root); G.p={x:0,z:34};
-  G.car=makeCar({id:'mine',style:'hatch',color:'#00C853'}); scene.add(G.car); G.c={x:12,z:34,h:Math.PI/2,v:0,vh:Math.PI/2}; placeCar(G.car,G.c);
+  G.you=makeRig(GLTF.crowd, MB.you, 1.9,'g'); G.you.root.add(blob(1)); scene.add(G.you.root); G.p={x:0,z:26};
+  G.car=makeCar({id:'mine',style:'hatch',color:'#00C853'}); scene.add(G.car); G.c={x:9,z:26,h:Math.PI/2,v:0,vh:Math.PI/2}; placeCar(G.car,G.c);
   portals(); traffic(); peds(); coins(); mapCanvas();
   $('#go').disabled=false; $('#go').textContent='Explore Bowling Green';
-  $('#go').onclick=()=>{ audio(); $('#title').hidden=true; $('#hud').hidden=false; toast('Welcome to <b>Bowling Green</b>! Walk to the glowing rings to enter MoneyVerse games.'); setTimeout(()=>toast('Your car is parked right here. Press <b>E</b> next to it to drive.'),4000); };
+  $('#go').onclick=()=>{ audio(); $('#title').hidden=true; $('#hud').hidden=false; $('#mini').hidden=false; $('#hSpd').hidden=false; toast('Welcome to <b>Bowling Green</b>! Walk to the glowing rings to enter MoneyVerse games.'); setTimeout(()=>toast('Your car is parked right here. Press <b>E</b> next to it to drive.'),4000); };
   loop(); }
 
 /* ---------- input ---------- */
@@ -4818,7 +4802,7 @@ function trafTick(dt){ G.traf.forEach(t=>{ const P=t.r.pts; let a=P[t.seg], b=P[
     t.u+=vv*dt*t.dir/L; if(t.u>1){ if(t.seg<P.length-2){ t.seg++; t.u=0; } else { t.dir=-1; t.u=1; } } if(t.u<0){ if(t.seg>0){ t.seg--; t.u=1; } else { t.dir=1; t.u=0; } }
     a=P[t.seg]; b=P[t.seg+1]; const L2=Math.hypot(b[0]-a[0],b[1]-a[1]), dx=(b[0]-a[0])/L2, dz=(b[1]-a[1])/L2, lane=t.r.w/4*t.dir, x=a[0]+(b[0]-a[0])*t.u-dz*lane, z=a[1]+(b[1]-a[1])*t.u+dx*lane;
     t.g.position.set(x,roadY(x,z),z); t.g.rotation.y=Math.atan2(dx*t.dir,dz*t.dir); t.g.userData.wheels.forEach(w=>w.children.forEach(m=>m.rotation.y+=vv*dt/t.g.userData.r)); }); }
-function peds(){ G.peds=[]; const spots=[[0,0,30],[-150,84,40],[110,-56,25],[232,300,30],[50,-10,60]]; for(let i=0;i<(MOBILE?10:22);i++){ const [cx,cz,r]=pick(spots), rig=makeRig(GLTF.crowd,mat(pick(['#FCA5A5','#93C5FD','#FDE68A','#C4B5FD','#A7F3D0','#FDBA74','#F9A8D4','#E2E8F0']),{roughness:.3}),rand(1.6,2),pick(['g','y']));
+function peds(){ G.peds=[]; const spots=[[0,0,14],[LMR.botu[0],LMR.botu[1]+8,30],[LMR.ballpark[0]+14,LMR.ballpark[1],14],[LMR.tycoon[0],LMR.tycoon[1]+24,26],[20,30,40],[-30,-20,40]]; for(let i=0;i<(MOBILE?10:22);i++){ const [cx,cz,r]=pick(spots), rig=makeRig(GLTF.crowd,mat(pick(['#FCA5A5','#93C5FD','#FDE68A','#C4B5FD','#A7F3D0','#FDBA74','#F9A8D4','#E2E8F0']),{roughness:.3}),rand(1.6,2),pick(['g','y']));
   rig.root.add(blob(1)); scene.add(rig.root); const o={rig,cx,cz,r,x:cx+rand(-r,r),z:cz+rand(-r,r),tx:0,tz:0,w:0}; o.tx=o.x; o.tz=o.z; G.peds.push(o); } }
 function pedTick(dt){ G.peds.forEach(o=>{ const dx=o.tx-o.x, dz=o.tz-o.z, d=Math.hypot(dx,dz); if(d<.3){ o.w-=dt; if(o.w<0){ o.tx=o.cx+rand(-o.r,o.r); o.tz=o.cz+rand(-o.r,o.r); o.w=rand(1,5); } } else { const p={x:o.x+dx/d*1.4*dt,z:o.z+dz/d*1.4*dt}; if(collide(p,.6)){ o.tx=o.x; o.tz=o.z; } o.x=p.x; o.z=p.z; o.rig.root.rotation.y=Math.atan2(dx,dz); }
   o.rig.root.position.set(o.x,H(o.x,o.z)+(d>.3?Math.abs(Math.sin(G.t*8+o.cx))*.06:0),o.z); if(Math.hypot(o.x-G.p.x,o.z-G.p.z)<80) o.rig.mixer.update(dt); }); }
@@ -4830,7 +4814,7 @@ function coinTick(dt){ const me=G.mode==='drive'?G.c:G.p; G.coinList.forEach(m=>
 /* ---------- movement ---------- */
 function placeCar(g,c){ g.position.set(c.x,roadY(c.x,c.z)-.02,c.z); g.rotation.y=c.h; }
 function walkTick(dt){ const sp=K('shift')?11:6, f=(K('w','arrowup','gas')?1:0)-(K('s','arrowdown','brake')?1:0), s=(K('d','arrowright','right')?1:0)-(K('a','arrowleft','left')?1:0);
-  const r=G.you.root; if(f||s){ const ang=G.yaw+Math.atan2(-s,f)*1, mv=Math.min(1,Math.hypot(f,s)); const p={x:G.p.x+Math.sin(ang)*sp*mv*dt,z:G.p.z+Math.cos(ang)*sp*mv*dt}; collide(p,.7); G.p.x=clamp(p.x,-490,490); G.p.z=clamp(p.z,-490,490); r.rotation.y=ang; rigPlay(G.you,'Idle'); }
+  const r=G.you.root; if(f||s){ const ang=G.yaw+Math.atan2(-s,f)*1, mv=Math.min(1,Math.hypot(f,s)); const p={x:G.p.x+Math.sin(ang)*sp*mv*dt,z:G.p.z+Math.cos(ang)*sp*mv*dt}; collide(p,.7); G.p.x=clamp(p.x,-600,600); G.p.z=clamp(p.z,-600,600); r.rotation.y=ang; rigPlay(G.you,'Idle'); }
   r.visible=true; r.position.set(G.p.x,H(G.p.x,G.p.z)+((f||s)?Math.abs(Math.sin(G.t*10))*.08:0),G.p.z); G.you.mixer.update(dt);
   camFollow(G.p.x,H(G.p.x,G.p.z)+1.6,G.p.z,G.yaw,9,4.6,dt); }
 function driveTick(dt){ const c=G.c, gas=K('w','arrowup','gas')&&G.fuel>0?1:0, brk=K('s','arrowdown','brake')?1:0, st=(K('a','arrowleft','left')?1:0)-(K('d','arrowright','right')?1:0), top=K('shift')?34:26;
@@ -4838,7 +4822,7 @@ function driveTick(dt){ const c=G.c, gas=K('w','arrowup','gas')&&G.fuel>0?1:0, b
   const on=nearRoad(c.x,c.z).d<1; if(!on) c.v*=1-dt*.9; G.fuel=Math.max(0,G.fuel-Math.abs(c.v)*dt*.00055); if(G.fuel<=0&&!G.fuelWarn){ G.fuelWarn=1; toast('⛽ Out of gas! Walk to a Bot Gas station (E) or press E to get out.','bad'); } if(G.fuel>0) G.fuelWarn=0;
   c.h+=st*1.8*Math.min(1,Math.abs(c.v)/6)*(1-.35*Math.abs(c.v)/34)*Math.sign(c.v||1)*dt; let dh=Math.atan2(Math.sin(c.h-c.vh),Math.cos(c.h-c.vh)); c.vh+=dh*Math.min(1,dt*5);
   const p={x:c.x+Math.sin(c.vh)*c.v*dt, z:c.z+Math.cos(c.vh)*c.v*dt}; if(collide(p,1.6)){ c.v*=.4; if(Math.abs(c.v)>4) sfx.bad(); } G.traf.forEach(t=>{ if(Math.hypot(t.g.position.x-p.x,t.g.position.z-p.z)<2.6){ c.v*=-.3; const d=Math.hypot(p.x-t.g.position.x,p.z-t.g.position.z)||1; p.x=t.g.position.x+(p.x-t.g.position.x)/d*2.6; p.z=t.g.position.z+(p.z-t.g.position.z)/d*2.6; } });
-  c.x=clamp(p.x,-490,490); c.z=clamp(p.z,-490,490); placeCar(G.car,c); G.car.userData.wheels.forEach((w,i)=>{ w.children.forEach(m=>m.rotation.y+=c.v*dt/G.car.userData.r); if(i<2) w.rotation.y=st*.4; }); G.car.userData.tail.emissiveIntensity=brk?3:.5;
+  c.x=clamp(p.x,-600,600); c.z=clamp(p.z,-600,600); placeCar(G.car,c); G.car.userData.wheels.forEach((w,i)=>{ w.children.forEach(m=>m.rotation.y+=c.v*dt/G.car.userData.r); if(i<2) w.rotation.y=st*.4; }); G.car.userData.tail.emissiveIntensity=brk?3:.5;
   G.you.root.visible=false; G.p.x=c.x; G.p.z=c.z; G.yaw=lerpAng(G.yaw,c.vh,dt*3);
   camFollow(c.x,roadY(c.x,c.z)+1.2,c.z,G.yaw,11+Math.abs(c.v)*.12,4.4,dt); }
 const lerpAng=(a,b,k)=>a+Math.atan2(Math.sin(b-a),Math.cos(b-a))*Math.min(1,k);
@@ -4849,16 +4833,16 @@ function camFollow(x,y,z,yaw,dist,hgt,dt){ const tx=x-Math.sin(yaw)*dist, tz=z-M
 function nearTick(){ const me=G.mode==='drive'?G.c:G.p; let n=null, label='';
   if(G.mode==='walk'&&Math.hypot(G.c.x-me.x,G.c.z-me.z)<4){ n='car'; label='Drive your car'; } if(G.mode==='drive'){ n='car'; label='Get out'; }
   for(const P of G.portals){ const d=Math.hypot(P.x-me.x,P.z-me.z); if(d<(G.mode==='drive'?6:4.5)){ n=P; label='Enter '+P.l.name; } }
-  if(Math.hypot(me.x-0,me.z+16)<6&&G.mode==='walk'){ n='truck'; label='Bot Eats jobs'; } const atmL=LANDMARKS.find(l=>l.id==='botbank'); if(Math.hypot(me.x-(atmL.x),me.z-(atmL.z-13))<5&&G.mode==='walk'){ n='atm'; label='BotBank ATM'; }
+  if(Math.hypot(me.x-W.truck.x,me.z-W.truck.z)<6&&G.mode==='walk'){ n='truck'; label='Bot Eats jobs'; } const atmL=LANDMARKS.find(l=>l.id==='botbank'); if(Math.hypot(me.x-(atmL.x),me.z-(atmL.z-13))<5&&G.mode==='walk'){ n='atm'; label='BotBank ATM'; }
   LANDMARKS.filter(l=>l.kind==='gas').forEach(l=>{ if(Math.hypot(me.x-l.x,me.z-l.z)<10){ n={gas:l}; label='Fill up the tank'; } });
   G.near=n; const pr=$('#prompt'); pr.hidden=!n||G.modal; if(n) pr.innerHTML=`<kbd>E</kbd> ${label}`;
   if(G.job&&Math.hypot(me.x-G.job.to.x,me.z-G.job.to.z)<16) endJob(true); }
 function where(){ const me=G.mode==='drive'?G.c:G.p; let best=null; LANDMARKS.forEach(l=>{ const d=Math.hypot(l.x-me.x,l.z-me.z); if(!best||d<best.d) best={d,l}; }); const nr=nearRoad(me.x,me.z); return best.d<40?best.l.name:(nr.s&&nr.d<12?nr.s.r.name.replace(/^(NE|E|W|S|SW) .*/,'Neighborhood'):'Bowling Green'); }
 
 /* ---------- maps ---------- */
-let MAP=null; const MS=1000, MPX=600;
-function mapCanvas(){ const c=document.createElement('canvas'); c.width=c.height=MPX; const g=c.getContext('2d'), s=MPX/MS, X=x=>(x+500)*s, Z=z=>(z+500)*s; g.fillStyle='#7FB069'; g.fillRect(0,0,MPX,MPX);
-  g.strokeStyle='#4A90C2'; g.lineWidth=34*s; g.beginPath(); for(let x=-500;x<=500;x+=10){ const z=riverZ(x); x===-500?g.moveTo(X(x),Z(z)):g.lineTo(X(x),Z(z)); } g.stroke();
+let MAP=null; const MS=1240, MPX=600;
+function mapCanvas(){ const c=document.createElement('canvas'); c.width=c.height=MPX; const g=c.getContext('2d'), s=MPX/MS, X=x=>(x+620)*s, Z=z=>(z+620)*s; g.fillStyle='#7FB069'; g.fillRect(0,0,MPX,MPX);
+  g.strokeStyle='#4A90C2'; g.lineWidth=34*s; g.beginPath(); RIV.forEach(([x,z],i)=>i?g.lineTo(X(x),Z(z)):g.moveTo(X(x),Z(z))); g.stroke();
   g.fillStyle='rgba(80,140,60,.6)'; g.beginPath(); g.arc(X(HILL.x),Z(HILL.z),60*s,0,7); g.fill();
   g.lineCap='round'; ROADS.forEach(r=>{ g.strokeStyle=r.kind==='hwy'?'#F59E0B':r.kind==='major'?'#FDE68A':'#F1F5F9'; g.lineWidth=Math.max(2,r.w*s*1.2); g.beginPath(); r.pts.forEach(([x,z],i)=>i?g.lineTo(X(x),Z(z)):g.moveTo(X(x),Z(z))); g.stroke(); });
   MAP={c,X,Z,s}; }
@@ -4871,7 +4855,7 @@ function bigMap(){ if(G.modal) return closeModal(); const m=modal(`<div class="e
   const cv=m.querySelector('#bm'), g=cv.getContext('2d'); g.drawImage(MAP.c,0,0); g.font='700 13px Inter,system-ui,sans-serif'; g.textAlign='center';
   LANDMARKS.filter(l=>!['river'].includes(l.id)).forEach(l=>{ const x=MAP.X(l.x), y=MAP.Z(l.z); g.fillStyle=l.col||'#0B1220'; g.beginPath(); g.arc(x,y,l.game?7:4,0,7); g.fill(); g.strokeStyle='#fff'; g.lineWidth=2; g.stroke(); g.fillStyle='#0B1220'; g.fillText(l.name.replace(' · Find Your Path',''),x,y-11); });
   const me=G.mode==='drive'?G.c:G.p; g.fillStyle='#EF4444'; g.beginPath(); g.arc(MAP.X(me.x),MAP.Z(me.z),7,0,7); g.fill(); g.fillStyle='#0B1220'; g.fillText('You',MAP.X(me.x),MAP.Z(me.z)+20);
-  cv.onclick=e=>{ const r=cv.getBoundingClientRect(), x=(e.clientX-r.left)/r.width*MS-500, z=(e.clientY-r.top)/r.height*MS-500; let best=null; LANDMARKS.forEach(l=>{ const d=Math.hypot(l.x-x,l.z-z); if(!best||d<best.d) best={d,l}; }); G.gps={x:best.l.x,z:best.l.z,name:best.l.name}; closeModal(); toast('📍 GPS set: <b>'+best.l.name+'</b>'); }; }
+  cv.onclick=e=>{ const r=cv.getBoundingClientRect(), x=(e.clientX-r.left)/r.width*MS-620, z=(e.clientY-r.top)/r.height*MS-620; let best=null; LANDMARKS.forEach(l=>{ const d=Math.hypot(l.x-x,l.z-z); if(!best||d<best.d) best={d,l}; }); G.gps={x:best.l.x,z:best.l.z,name:best.l.name}; closeModal(); toast('📍 GPS set: <b>'+best.l.name+'</b>'); }; }
 
 /* ---------- frame ---------- */
 let saveT=0;

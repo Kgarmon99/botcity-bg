@@ -14,7 +14,7 @@ async function boot(){ initThree(); setupMaterials(); $('#tLogo').src=MB_ASSETS.
   GLTF.crowd=await parseGLB(MB_ASSETS.crowd);
   G.you=makeRig(GLTF.crowd, MB.you, 1.9,'g'); G.you.root.add(blob(1)); scene.add(G.you.root); G.p={x:0,z:26};
   G.car=makeCar({id:'mine',style:'hatch',color:'#00C853'}); scene.add(G.car); G.c={x:9,z:26,h:Math.PI/2,v:0,vh:Math.PI/2}; placeCar(G.car,G.c);
-  portals(); traffic(); peds(); coins(); mapCanvas();
+  portals(); traffic(); peds(); coins(); mapCanvas(); fxInit();
   $('#go').disabled=false; $('#go').textContent='Explore Bowling Green';
   $('#go').onclick=()=>{ audio(); $('#title').hidden=true; $('#hud').hidden=false; $('#mini').hidden=false; $('#hSpd').hidden=false; toast('Welcome to <b>Bowling Green</b>! Walk to the glowing rings to enter MoneyVerse games.'); setTimeout(()=>toast('Your car is parked right here. Press <b>E</b> next to it to drive.'),4000); };
   loop(); }
@@ -52,14 +52,14 @@ function atm(){ const m=modal(`<div class="eye">BotBank ATM · presented by Amer
 function gas(){ const need=Math.round((1-G.fuel)*40); if(need<1) return toast('Tank is already full.'); const pay=Math.min(need,G.cash); if(pay<1) return toast('No cash for gas! Deliver food or hit the ATM.','bad'); G.cash-=pay; G.fuel=Math.min(1,G.fuel+pay/40); sfx.coin(); toast(`⛽ Filled up: ${fmt(pay)}. Gas is a real cost of owning a car.`); }
 
 /* ---------- traffic + people ---------- */
-function traffic(){ G.traf=[]; const roads=ROADS.filter(r=>r.kind==='major'||r.kind==='street'||r.kind==='hwy'); for(let i=0;i<(MOBILE?14:26);i++){ const r=pick(roads), g=makeCar({id:'t'+i,style:pick(['sedan','hatch','ev','truck','sedan']),color:pick(['#F59E0B','#3B82F6','#E11D48','#F8FAFC','#334155','#A855F7','#0EA5E9'])}); scene.add(g);
+function traffic(){ G.traf=[]; const roads=ROADS.filter(r=>r.kind==='major'||r.kind==='street'||r.kind==='hwy'); for(let i=0;i<(MOBILE?16:36);i++){ const r=pick(roads), g=makeCar({id:'t'+i,style:pick(['sedan','hatch','ev','truck','sedan']),color:pick(['#F59E0B','#3B82F6','#E11D48','#F8FAFC','#334155','#A855F7','#0EA5E9'])}); scene.add(g);
   G.traf.push({g,r,seg:Math.floor(Math.random()*(r.pts.length-1)),u:0,dir:Math.random()<.5?1:-1,v:r.kind==='hwy'?rand(22,28):rand(9,13)}); } }
 function trafTick(dt){ G.traf.forEach(t=>{ const P=t.r.pts; let a=P[t.seg], b=P[t.seg+1]; const L=Math.hypot(b[0]-a[0],b[1]-a[1]); let vv=t.v; const me=G.mode==='drive'?G.c:G.p;
     const dx0=(b[0]-a[0])/L*t.dir, dz0=(b[1]-a[1])/L*t.dir, gx=me.x-t.g.position.x, gz=me.z-t.g.position.z, ahead=gx*dx0+gz*dz0; if(ahead>0&&ahead<9&&Math.abs(gx*dz0-gz*dx0)<3) vv=0;
     t.u+=vv*dt*t.dir/L; if(t.u>1){ if(t.seg<P.length-2){ t.seg++; t.u=0; } else { t.dir=-1; t.u=1; } } if(t.u<0){ if(t.seg>0){ t.seg--; t.u=1; } else { t.dir=1; t.u=0; } }
     a=P[t.seg]; b=P[t.seg+1]; const L2=Math.hypot(b[0]-a[0],b[1]-a[1]), dx=(b[0]-a[0])/L2, dz=(b[1]-a[1])/L2, lane=t.r.w/4*t.dir, x=a[0]+(b[0]-a[0])*t.u-dz*lane, z=a[1]+(b[1]-a[1])*t.u+dx*lane;
     t.g.position.set(x,roadY(x,z),z); t.g.rotation.y=Math.atan2(dx*t.dir,dz*t.dir); t.g.userData.wheels.forEach(w=>w.children.forEach(m=>m.rotation.y+=vv*dt/t.g.userData.r)); }); }
-function peds(){ G.peds=[]; const spots=[[0,0,14],[LMR.botu[0],LMR.botu[1]+8,30],[LMR.ballpark[0]+14,LMR.ballpark[1],14],[LMR.tycoon[0],LMR.tycoon[1]+24,26],[20,30,40],[-30,-20,40]]; for(let i=0;i<(MOBILE?10:22);i++){ const [cx,cz,r]=pick(spots), rig=makeRig(GLTF.crowd,mat(pick(['#FCA5A5','#93C5FD','#FDE68A','#C4B5FD','#A7F3D0','#FDBA74','#F9A8D4','#E2E8F0']),{roughness:.3}),rand(1.6,2),pick(['g','y']));
+function peds(){ G.peds=[]; const spots=[[0,0,14],[LMR.botu[0],LMR.botu[1]+8,30],[LMR.ballpark[0]+14,LMR.ballpark[1],14],[LMR.tycoon[0],LMR.tycoon[1]+24,26],[20,30,40],[-30,-20,40]]; for(let i=0;i<(MOBILE?12:30);i++){ const [cx,cz,r]=pick(spots), rig=makeRig(GLTF.crowd,mat(pick(['#FCA5A5','#93C5FD','#FDE68A','#C4B5FD','#A7F3D0','#FDBA74','#F9A8D4','#E2E8F0']),{roughness:.3}),rand(1.6,2),pick(['g','y']));
   rig.root.add(blob(1)); scene.add(rig.root); const o={rig,cx,cz,r,x:cx+rand(-r,r),z:cz+rand(-r,r),tx:0,tz:0,w:0}; o.tx=o.x; o.tz=o.z; G.peds.push(o); } }
 function pedTick(dt){ G.peds.forEach(o=>{ const dx=o.tx-o.x, dz=o.tz-o.z, d=Math.hypot(dx,dz); if(d<.3){ o.w-=dt; if(o.w<0){ o.tx=o.cx+rand(-o.r,o.r); o.tz=o.cz+rand(-o.r,o.r); o.w=rand(1,5); } } else { const p={x:o.x+dx/d*1.4*dt,z:o.z+dz/d*1.4*dt}; if(collide(p,.6)){ o.tx=o.x; o.tz=o.z; } o.x=p.x; o.z=p.z; o.rig.root.rotation.y=Math.atan2(dx,dz); }
   o.rig.root.position.set(o.x,H(o.x,o.z)+(d>.3?Math.abs(Math.sin(G.t*8+o.cx))*.06:0),o.z); if(Math.hypot(o.x-G.p.x,o.z-G.p.z)<80) o.rig.mixer.update(dt); }); }
@@ -84,7 +84,7 @@ function driveTick(dt){ const c=G.c, gas=K('w','arrowup','gas')&&G.fuel>0?1:0, b
   camFollow(c.x,roadY(c.x,c.z)+1.2,c.z,G.yaw,11+Math.abs(c.v)*.12,4.4,dt); }
 const lerpAng=(a,b,k)=>a+Math.atan2(Math.sin(b-a),Math.cos(b-a))*Math.min(1,k);
 function camFollow(x,y,z,yaw,dist,hgt,dt){ const tx=x-Math.sin(yaw)*dist, tz=z-Math.cos(yaw)*dist, ty=Math.max(y+hgt,H(tx,tz)+2); const k=Math.min(1,dt*5); camera.position.x+=(tx-camera.position.x)*k; camera.position.y+=(ty-camera.position.y)*k; camera.position.z+=(tz-camera.position.z)*k; camera.lookAt(x,y+1,z);
-  sun.position.set(x+60,110,z+40); sun.target.position.set(x,0,z); }
+ }
 
 /* ---------- what's nearby ---------- */
 function nearTick(){ const me=G.mode==='drive'?G.c:G.p; let n=null, label='';
@@ -119,11 +119,10 @@ let saveT=0;
 function loop(){ requestAnimationFrame(loop); const dt=Math.min(.05,clock.getDelta()); G.t+=dt;
   if(!G.modal&&$('#title').hidden){ G.mode==='drive'?driveTick(dt):walkTick(dt); nearTick(); coinTick(dt); if(G.job){ G.job.left-=dt; if(G.job.left<=0){ toast('⏰ Too slow, the customer canceled. No pay.','bad'); G.job=null; G.gps=null; } } }
   else if(!$('#title').hidden){ const a=G.t*.05; camera.position.set(Math.cos(a)*190,95,Math.sin(a)*190); camera.lookAt(0,0,0); }
-  trafTick(dt); pedTick(dt); W.anim.forEach(f=>f(G.t)); G.portals&&G.portals.forEach(p=>{ p.ring.rotation.y+=dt; p.tag.lookAt(camera.position.x,p.tag.position.y,camera.position.z); });
+  trafTick(dt); pedTick(dt); fxTick(dt,G.t); W.anim.forEach(f=>f(G.t)); G.portals&&G.portals.forEach(p=>{ p.ring.rotation.y+=dt; p.tag.lookAt(camera.position.x,p.tag.position.y,camera.position.z); });
   if(W.racers) W.racers.forEach(r=>{ r.a+=r.v*dt; r.c.position.set(Math.cos(r.a)*31*1.3,.2,Math.sin(r.a)*31); r.c.rotation.y=-r.a+Math.PI; });
   G.savings*=1+.04/525600*dt*60*60; /* sped up: one real minute ≈ one month */
   if($('#hud')&&!$('#hud').hidden){ $('#hCash').textContent=fmt(G.cash); $('#hSave').textContent=fmt(G.savings); $('#hCoins').textContent=G.coins+'/60'; $('#hFuel').style.width=(G.fuel*100)+'%'; $('#hWhere').textContent=where();
     $('#hSpd').textContent=G.mode==='drive'?Math.round(Math.abs(G.c.v)*2.2)+' mph':''; drawMini();
     if(G.gps){ const me=G.mode==='drive'?G.c:G.p, d=Math.hypot(G.gps.x-me.x,G.gps.z-me.z); $('#hGps').hidden=false; $('#hGps').innerHTML=`📍 ${G.gps.name} · ${Math.round(d*4)} m${G.job?' · ⏱ '+Math.ceil(G.job.left)+'s':''}`; } else $('#hGps').hidden=true; }
   renderer.render(scene,camera); }
-boot().catch(e=>{ console.error(e); $('#go').textContent='Could not load'; });

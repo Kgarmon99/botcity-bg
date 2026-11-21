@@ -98,17 +98,22 @@ function buildRoads(){ const tex=ROADTEX(), side={pos:[],uv:[],idx:[]}, top={pos
 }
 
 /* procedural windows on any box: by world position, so instanced boxes of any size look right */
-function windowMat(opts={}){ const m=new THREE.MeshStandardMaterial({color:'#ffffff', roughness:.75, metalness:.05});
-  m.onBeforeCompile=s=>{ s.vertexShader=s.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vWP; varying vec3 vWN;').replace('#include <project_vertex>','#include <project_vertex>\n#ifdef USE_INSTANCING\n vWP=(modelMatrix*instanceMatrix*vec4(transformed,1.0)).xyz; vWN=normalize(mat3(modelMatrix*instanceMatrix)*objectNormal);\n#else\n vWP=(modelMatrix*vec4(transformed,1.0)).xyz; vWN=normalize(mat3(modelMatrix)*objectNormal);\n#endif');
-    s.fragmentShader=s.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vWP; varying vec3 vWN; float hsh(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}')
+const NIGHT={value:0};
+/* procedural facades by world position: brick courses, window frames + sills, and windows that light up at night */
+function windowMat(opts={}){ const m=new THREE.MeshStandardMaterial({color:'#ffffff', roughness:.8, metalness:.04}); const wx=(opts.wx||2.6).toFixed(2), wy=(opts.wy||3.4).toFixed(2);
+  m.onBeforeCompile=s=>{ s.uniforms.uNight=NIGHT;
+    s.vertexShader=s.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vWP; varying vec3 vWN;').replace('#include <project_vertex>','#include <project_vertex>\n#ifdef USE_INSTANCING\n vWP=(modelMatrix*instanceMatrix*vec4(transformed,1.0)).xyz; vWN=normalize(mat3(modelMatrix*instanceMatrix)*objectNormal);\n#else\n vWP=(modelMatrix*vec4(transformed,1.0)).xyz; vWN=normalize(mat3(modelMatrix)*objectNormal);\n#endif');
+    s.fragmentShader=s.fragmentShader.replace('#include <common>','#include <common>\nuniform float uNight; varying vec3 vWP; varying vec3 vWN; float hsh(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);} float gWin=0.; float gLit=0.;')
      .replace('#include <color_fragment>',`#include <color_fragment>
-      if(abs(vWN.y)<.5){ float u=abs(vWN.x)>.5?vWP.z:vWP.x; vec2 cell=vec2(floor(u/${(opts.wx||2.6).toFixed(2)}),floor(vWP.y/${(opts.wy||3.4).toFixed(2)}));
-        vec2 f=vec2(fract(u/${(opts.wx||2.6).toFixed(2)}),fract(vWP.y/${(opts.wy||3.4).toFixed(2)}));
-        float win=step(.2,f.x)*step(f.x,.8)*step(.25,f.y)*step(f.y,.8);
-        float lit=hsh(cell+floor(vWP.xz*.05)); vec3 glass=mix(vec3(.12,.18,.27),vec3(.55,.68,.8),lit*.6);
-        diffuseColor.rgb=mix(diffuseColor.rgb,glass,win*.88);
-        diffuseColor.rgb*=1.0-.18*step(f.y,.08); }
-      else if(vWN.y>.5){ diffuseColor.rgb*=.72; }`); };
+      if(abs(vWN.y)<.5){ float u=abs(vWN.x)>.5?vWP.z:vWP.x; vec2 cell=vec2(floor(u/${wx}),floor(vWP.y/${wy})); vec2 f=vec2(fract(u/${wx}),fract(vWP.y/${wy}));
+        float win=step(.22,f.x)*step(f.x,.78)*step(.28,f.y)*step(f.y,.82); float frame=step(.17,f.x)*step(f.x,.83)*step(.22,f.y)*step(f.y,.87)-win;
+        float lit=hsh(cell+floor(vWP.xz*.05)); vec3 glass=mix(vec3(.10,.15,.24),vec3(.52,.66,.8),lit*.55+.15*f.y);
+        float course=step(.9,fract(vWP.y*2.85))*.08+step(.94,fract(u*1.4+floor(vWP.y*2.85)*.5))*.05;
+        diffuseColor.rgb*=1.0-course; diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.93,.91,.86),frame*.8); diffuseColor.rgb=mix(diffuseColor.rgb,glass,win*.9);
+        diffuseColor.rgb*=1.0-.25*step(f.y,.06); gWin=win; gLit=step(.42,lit); }
+      else if(vWN.y>.5){ diffuseColor.rgb*=.7; }`)
+     .replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
+      totalEmissiveRadiance+=vec3(1.0,.78,.45)*gWin*gLit*uNight*1.15;`); };
   return m; }
 const INST=[];
 function instBoxes(list,m,cast=true){ const im=new THREE.InstancedMesh(BOX,m,list.length), o=new THREE.Object3D(), c=new THREE.Color(); list.forEach((b,i)=>{ o.position.set(b.x,b.y+b.h/2,b.z); o.rotation.set(0,b.ry||0,0); o.scale.set(b.w,b.h,b.d); o.updateMatrix(); im.setMatrixAt(i,o.matrix); im.setColorAt(i,c.set(b.c)); }); im.castShadow=cast; im.receiveShadow=true; scene.add(im); INST.push(im); return im; }
@@ -116,7 +121,7 @@ function instBoxes(list,m,cast=true){ const im=new THREE.InstancedMesh(BOX,m,lis
 function buildBuildings(){ const occ=new Set(), cell=4; const free=(x,z,w,d)=>{ for(let i=Math.floor((x-w/2)/cell);i<=Math.floor((x+w/2)/cell);i++) for(let j=Math.floor((z-d/2)/cell);j<=Math.floor((z+d/2)/cell);j++) if(occ.has(i+','+j)) return false; return true; };
   const take=(x,z,w,d)=>{ for(let i=Math.floor((x-w/2)/cell);i<=Math.floor((x+w/2)/cell);i++) for(let j=Math.floor((z-d/2)/cell);j<=Math.floor((z+d/2)/cell);j++) occ.add(i+','+j); };
   const brick=['#9A4A3A','#B5654B','#C9A27E','#8C5A44','#D8C3A5','#A3553F','#7D8B94','#C7B299','#E2D3BF','#6E7F8A'], shop=['#F1E6D2','#DCE7E9','#F3D9C6','#E8E2F2','#D8EBD9'], house=['#F5EFE6','#E3ECF2','#F2E1C9','#DDE8D5','#EBD8D8','#E9E4F5','#C9D6DF'];
-  const B=[], HB=[], RF=[];
+  const B=[], HB=[], RF=[], LOTS=[], aw2=['#DC2626','#2563EB','#F59E0B','#16A34A','#7C3AED','#DB2777','#0891B2'];
   const tryPlace=(x,z,w,d,h,col,kind)=>{ if(isKept(x,z,Math.max(w,d)/2+2)) return false; const nr=nearRoad(x,z); if(nr.d<Math.max(w,d)/2+1.5) return false; if(riverD(x,z)<36) return false; if(!free(x,z,w+2,d+2)) return false;
     const s=nr.s, ry=s?Math.atan2(s.dx,s.dz):0; take(x,z,w+2,d+2); const y=H(x,z)-.6;
     if(kind==='house'){ HB.push({x,y,z,w,h,d,ry,c:col}); RF.push({x,y:y+h,z,w:w+.8,h:h*.5,d:d+.8,ry,c:pick(['#7C4A3A','#4B5563','#6B4F3A','#374151','#8B3A3A'])}); }
@@ -126,11 +131,23 @@ function buildBuildings(){ const occ=new Set(), cell=4; const free=(x,z,w,d)=>{ 
   SEGS.forEach(s=>{ const kind=s.r.kind, down=(x,z)=>Math.abs(x)<160&&Math.abs(z)<160; if(kind==='hwy') return;
     for(let u=4;u<s.L-4;u+=kind==='res'?13:9){ for(const side of [-1,1]){ const px=s.x0+s.dx*u, pz=s.z0+s.dz*u, nx=-s.dz*side, nz=s.dx*side;
       if(kind==='res'){ const off=s.r.w/2+6, w=rand(6,8), d=rand(6,8); tryPlace(px+nx*off,pz+nz*off,w,d,rand(4,5.5),pick(house),'house'); continue; }
-      if(down(px,pz)){ const w=rand(7,11), d=rand(8,12), off=s.r.w/2+2.6+d/2; tryPlace(px+nx*off,pz+nz*off,w,d,rand(7,19)*(Math.hypot(px,pz)<70?1.25:1),pick(brick)); }
-      else if(kind==='major'&&Math.random()<.55){ const w=rand(12,24), d=rand(12,20), off=s.r.w/2+9+d/2; tryPlace(px+nx*off,pz+nz*off,w,d,rand(5,9),pick(shop)); } } } });
+      if(down(px,pz)){ const w=rand(7,11), d=rand(8,12), off=s.r.w/2+2.6+d/2; tryPlace(px+nx*off,pz+nz*off,w,d,(Math.random()<.85?rand(7,14):rand(15,22))*(Math.hypot(px,pz)<60?1.1:1),pick(brick)); }
+      else if(kind==='major'&&Math.random()<.55){ const w=rand(12,24), d=rand(12,20), off=s.r.w/2+11+d/2; if(tryPlace(px+nx*off,pz+nz*off,w,d,rand(5,9),pick(shop))) LOTS.push({x:px+nx*(s.r.w/2+5.5),z:pz+nz*(s.r.w/2+5.5),w:w+2,d:9,ry:Math.atan2(s.dx,s.dz),c:pick(aw2)}); } } } });
   /* extra houses scattered off the grid edges */
   for(let i=0;i<2600;i++){ const x=rand(-560,560), z=rand(-560,560); const nr=nearRoad(x,z); if(nr.d>6&&nr.d<20&&!(Math.abs(x)<160&&Math.abs(z)<160)) tryPlace(x,z,rand(6,8),rand(6,8),rand(4,5.5),pick(house),'house'); }
   instBoxes(B,windowMat()); instBoxes(HB,windowMat({wx:3.2,wy:4.6}));
+  /* parking lots with painted bays + tall pylon signs for the strip-mall look */
+  const lotTex=canvasTex(256,128,(g,w,h)=>{ g.fillStyle='#3A3F48'; g.fillRect(0,0,w,h); g.strokeStyle='#E5E7EB'; g.lineWidth=3; for(let x=8;x<w;x+=24){ g.beginPath(); g.moveTo(x,6); g.lineTo(x,52); g.moveTo(x,76); g.lineTo(x,122); g.stroke(); } });
+  const lotM=new THREE.MeshStandardMaterial({map:lotTex,roughness:.9,polygonOffset:true,polygonOffsetFactor:-1}), LG=new THREE.PlaneGeometry(1,1); LG.rotateX(-Math.PI/2);
+  const lots=new THREE.InstancedMesh(LG,lotM,LOTS.length), o2=new THREE.Object3D(); LOTS.forEach((l,i)=>{ o2.position.set(l.x,roadY(l.x,l.z)+.05,l.z); o2.rotation.set(0,l.ry,0); o2.scale.set(l.d,1,l.w); o2.updateMatrix(); lots.setMatrixAt(i,o2.matrix); }); lots.receiveShadow=true; scene.add(lots);
+  const PY=[], PS=[]; LOTS.forEach((l,i)=>{ if(i%2) return; const x=l.x+Math.sin(l.ry)*l.w*.45, z=l.z+Math.cos(l.ry)*l.w*.45; PY.push({x,y:roadY(x,z),z,w:.4,h:7,d:.4,c:'#475569'}); PS.push({x,y:roadY(x,z)+7,z,w:3.4,h:2.2,d:.4,ry:l.ry+Math.PI/2,c:l.c}); });
+  instBoxes(PY,mat('#ffffff',{metalness:.5,roughness:.4})); W.pylons=instBoxes(PS,mat('#ffffff',{emissive:'#ffffff',emissiveIntensity:.15,roughness:.4}));
+  /* contact shadows: a soft dark footprint under every building (cheap ambient occlusion) */
+  const aoTex=canvasTex(64,64,(g)=>{ const r=g.createRadialGradient(32,32,8,32,32,32); r.addColorStop(0,'rgba(0,0,0,.55)'); r.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=r; g.fillRect(0,0,64,64); });
+  const all=B.concat(HB), ao=new THREE.InstancedMesh(LG,new THREE.MeshBasicMaterial({map:aoTex,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-3}),all.length); all.forEach((b,i)=>{ o2.position.set(b.x,b.y+.68,b.z); o2.rotation.set(0,b.ry,0); o2.scale.set(b.d+5,1,b.w+5); o2.updateMatrix(); ao.setMatrixAt(i,o2.matrix); }); scene.add(ao);
+  /* storefront name boards around the square */
+  const SHOPS=['Bot Brew Coffee','Hilltopper Books','Circuit Diner','Fountain Sq Records','Byte Burger','Coin & Co Bank','Gear Up Bikes','Pixel Pizza','Volt Vintage','Bot Boutique','Main Ave Market','Copper Kettle'];
+  B.filter(b=>Math.hypot(b.x,b.z)<75&&b.h<16).slice(0,18).forEach((b,i)=>{ const fx=Math.sin(b.ry), fz=Math.cos(b.ry), sg=(nearRoad(b.x+fx*b.d,b.z+fz*b.d).d<nearRoad(b.x-fx*b.d,b.z-fz*b.d).d)?1:-1; const m=sign(scene,[{t:SHOPS[i%SHOPS.length],size:54,color:'#FFFFFF'}],b.w*.62,.9,b.x+fx*sg*(b.d/2+.08),b.y+4.6,b.z+fz*sg*(b.d/2+.08),{bg:pick(aw2),r:8,w:640,h:96,glow:.35}); m.rotation.y=b.ry+(sg<0?Math.PI:0); });
   /* details that sell it: cornices, shop awnings, storefront glass, rooftop units, water towers */
   const CN=[], AW=[], SF=[], RU=[]; const aw=['#B91C1C','#15803D','#1D4ED8','#B45309','#7C3AED','#0F766E','#BE185D'];
   B.forEach(b=>{ CN.push({x:b.x,y:b.y+b.h,z:b.z,w:b.w+.7,h:.7,d:b.d+.7,ry:b.ry,c:'#E7E0D3'});
@@ -149,8 +166,13 @@ function buildTrees(){ const T=[], cell=new Set(); for(let i=0;i<5200&&T.length<
     if(LANDMARKS.some(l=>l.game&&Math.hypot(x-l.x,z-l.z)<16)) continue; T.push({x,z,y:H(x,z),s:rand(.8,1.5)}); }
   const trunk=new THREE.InstancedMesh(CYL,mat('#6B4B34'),T.length), crown=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,1),mat('#ffffff',{roughness:.9, flatShading:true}),T.length), o=new THREE.Object3D(), c=new THREE.Color();
   T.forEach((t,i)=>{ o.position.set(t.x,t.y+1.4*t.s,t.z); o.rotation.set(0,0,0); o.scale.set(.32*t.s,2.8*t.s,.32*t.s); o.updateMatrix(); trunk.setMatrixAt(i,o.matrix);
-    o.position.set(t.x,t.y+3.9*t.s,t.z); o.rotation.set(0,i,0); o.scale.set(2.1*t.s,2.4*t.s,2.1*t.s); o.updateMatrix(); crown.setMatrixAt(i,o.matrix); crown.setColorAt(i,c.set(pick(['#3F8F3A','#4CA145','#5BAE4C','#367A35','#6BB85A']))); });
-  trunk.castShadow=crown.castShadow=true; scene.add(trunk,crown); }
+    o.position.set(t.x,t.y+3.9*t.s,t.z); o.rotation.set(0,i,0); o.scale.set(2.1*t.s,2.4*t.s,2.1*t.s); o.updateMatrix(); crown.setMatrixAt(i,o.matrix); crown.setColorAt(i,c.set(Math.random()<.28?pick(['#D97706','#EA580C','#B91C1C','#CA8A04','#F59E0B']):pick(['#3F8F3A','#4CA145','#5BAE4C','#367A35','#6BB85A']))); });
+  trunk.castShadow=crown.castShadow=true; scene.add(trunk,crown);
+  /* conifers on the hill and river banks */
+  const C=T.filter((t,i)=>i%5===0), cone=new THREE.InstancedMesh(new THREE.ConeGeometry(1.6,5,7),mat('#2F6B3A',{flatShading:true}),C.length); C.forEach((t,i)=>{ o.position.set(t.x+3,t.y+2.6*t.s,t.z+2); o.rotation.set(0,i,0); o.scale.setScalar(t.s); o.updateMatrix(); cone.setMatrixAt(i,o.matrix); }); cone.castShadow=true; scene.add(cone);
+  /* hedges and bushes along downtown sidewalks */
+  const BU=[]; SEGS.forEach(sg=>{ if(sg.r.kind!=='street'&&sg.r.kind!=='square') return; for(let u=6;u<sg.L;u+=9){ const side=(u/9|0)%2?1:-1, x=sg.x0+sg.dx*u-sg.dz*side*(sg.r.w/2+2.6), z=sg.z0+sg.dz*u+sg.dx*side*(sg.r.w/2+2.6); if(H(x,z)<-.4||COL.get(Math.floor(x/CC)+','+Math.floor(z/CC))?.some(b=>x>b.x0-.5&&x<b.x1+.5&&z>b.z0-.5&&z<b.z1+.5)) continue; BU.push({x,z,y:roadY(x,z),s:rand(.5,.9)}); } });
+  const bush=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,0),mat('#ffffff',{flatShading:true,roughness:.9}),BU.length); BU.forEach((b,i)=>{ o.position.set(b.x,b.y+b.s*.6,b.z); o.rotation.set(0,i,0); o.scale.set(b.s*1.3,b.s,b.s*1.3); o.updateMatrix(); bush.setMatrixAt(i,o.matrix); bush.setColorAt(i,c.set(pick(['#3F7D3A','#4A8F3F','#5C9E48','#8BAA3C']))); }); bush.castShadow=true; scene.add(bush); }
 
 function buildExtras(){ const zeb=mat('#F8FAFC',{roughness:.8, polygonOffset:true, polygonOffsetFactor:-4});
   const XI=[]; for(let i=-3;i<=5;i++) for(let j=-4;j<=5;j++){ const [x,z]=WARP(REAL.av[0]*i*125+REAL.au[0]*j*125, REAL.av[1]*i*125+REAL.au[1]*j*125); XI.push([x,z]); } const GA=Math.atan2(REAL.au[0],REAL.au[1]); XI.forEach(([x,z])=>{ if(nearRoad(x,z).d>-2) return; const cw=new THREE.Group(); cw.position.set(x,0,z); cw.rotation.y=GA; scene.add(cw); for(const [ox,oz,v] of [[0,-7,0],[0,7,0],[-7,0,1],[7,0,1]]) for(let i=-1;i<=1;i++){ const m=new THREE.Mesh(BOX,zeb); m.scale.set(v?3.4:.7,.04,v?.7:3.4); m.position.set(ox+(v?0:i*1.4),roadY(x,z)+.14,oz+(v?i*1.4:0)); cw.add(m); } });
@@ -168,7 +190,7 @@ function buildExtras(){ const zeb=mat('#F8FAFC',{roughness:.8, polygonOffset:tru
 }
 function buildLights(){ const L=[]; SEGS.forEach(s=>{ if(s.r.kind==='res'||s.r.kind==='hwy') return; for(let u=10;u<s.L;u+=28){ const side=(u/28|0)%2?1:-1, x=s.x0+s.dx*u-s.dz*side*(s.r.w/2+1.6), z=s.z0+s.dz*u+s.dx*side*(s.r.w/2+1.6); if(H(x,z)<-.5) continue; L.push({x,z,y:roadY(x,z)}); } });
   const pole=new THREE.InstancedMesh(CYL,mat('#3F4A59',{metalness:.5,roughness:.4}),L.length), head=new THREE.InstancedMesh(BOX,mat('#FEF3C7',{emissive:'#FDE68A',emissiveIntensity:.6}),L.length), o=new THREE.Object3D();
-  L.forEach((p,i)=>{ o.position.set(p.x,p.y+3,p.z); o.scale.set(.12,6,.12); o.updateMatrix(); pole.setMatrixAt(i,o.matrix); o.position.set(p.x,p.y+6,p.z); o.scale.set(.6,.2,.6); o.updateMatrix(); head.setMatrixAt(i,o.matrix); }); scene.add(pole,head); }
+  W.lamps=L; L.forEach((p,i)=>{ o.position.set(p.x,p.y+3,p.z); o.scale.set(.12,6,.12); o.updateMatrix(); pole.setMatrixAt(i,o.matrix); o.position.set(p.x,p.y+6,p.z); o.scale.set(.6,.2,.6); o.updateMatrix(); head.setMatrixAt(i,o.matrix); }); scene.add(pole,head); W.lampHead=head; }
 
 /* ---------- landmarks, hand built ---------- */
 function L$(id){ return LANDMARKS.find(l=>l.id===id); }

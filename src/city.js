@@ -165,8 +165,8 @@ function buildBuildings(){
     const ex=(Math.abs(ax)*w+Math.abs(nx)*d)/2*.75, ez=(Math.abs(az)*w+Math.abs(nz)*d)/2*.75; addCol(x-ex,z-ez,x+ex,z+ez,y+h+(house?h*.4:0)); });
   if(PL.length){ const pos=[], nor=[], col=[], cc=new THREE.Color(); const tri=(a,b,c2,n)=>{ [a,b,c2].forEach(p=>{ pos.push(...p); nor.push(...n); col.push(cc.r,cc.g,cc.b); }); };
     PL.forEach(p=>{ cc.set(p.c); const P=p.pts, n=P.length, y0=p.y, y1=p.y+p.h; let sa=0; for(let i=0;i<n;i++){ const [a,b]=P[i],[c2,d]=P[(i+1)%n]; sa+=a*d-c2*b; } const sg=sa>0?1:-1;
-      for(let i=0;i<n;i++){ const [a,b]=P[i],[c2,d]=P[(i+1)%n], l=Math.hypot(c2-a,d-b)||1, nn=[sg*(d-b)/l*-1,0,sg*(c2-a)/l]; tri([a,y0,b],[c2,y0,d],[c2,y1,d],nn); tri([a,y0,b],[c2,y1,d],[a,y1,b],nn); }
-      const T=THREE.ShapeUtils.triangulateShape(P.map(([a,b])=>new THREE.Vector2(a,b)),[]); cc.set(pick(['#B8B2A7','#A8A29E','#C4BDB0','#9CA3AF'])); T.forEach(([i,j,k])=>tri([P[i][0],y1,P[i][1]],[P[j][0],y1,P[j][1]],[P[k][0],y1,P[k][1]],[0,1,0]));
+      for(let i=0;i<n;i++){ const [a,b]=P[i],[c2,d]=P[(i+1)%n], l=Math.hypot(c2-a,d-b)||1, nn=[sg*(d-b)/l*-1,0,sg*(c2-a)/l]; if(sg>0){ tri([a,y0,b],[c2,y1,d],[c2,y0,d],nn); tri([a,y0,b],[a,y1,b],[c2,y1,d],nn); } else { tri([a,y0,b],[c2,y0,d],[c2,y1,d],nn); tri([a,y0,b],[c2,y1,d],[a,y1,b],nn); } }
+      const T=THREE.ShapeUtils.triangulateShape(P.map(([a,b])=>new THREE.Vector2(a,b)),[]); cc.set(pick(['#B8B2A7','#A8A29E','#C4BDB0','#9CA3AF'])); T.forEach(([i,j,k])=>{ const A=P[i],Bq=P[j],Cq=P[k], up=(Bq[0]-A[0])*(Cq[1]-A[1])-(Bq[1]-A[1])*(Cq[0]-A[0])<0; const q=up?[A,Bq,Cq]:[A,Cq,Bq]; tri([q[0][0],y1,q[0][1]],[q[1][0],y1,q[1][1]],[q[2][0],y1,q[2][1]],[0,1,0]); });
       });
     const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3)); g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
     const m=windowMat(); m.vertexColors=true; m.side=THREE.DoubleSide; const me=new THREE.Mesh(g,m); me.castShadow=me.receiveShadow=true; scene.add(me); }

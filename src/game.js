@@ -12,8 +12,8 @@ function closeModal(){ $('#modal').hidden=true; G.modal=false; }
 /* ---------- boot ---------- */
 async function boot(){ initThree(); setupMaterials(); $('#tLogo').src=MB_ASSETS.logo; buildCity();
   GLTF.crowd=await parseGLB(MB_ASSETS.crowd);
-  G.you=makeRig(GLTF.crowd, MB.you, 1.9,'g'); G.you.root.add(blob(1)); scene.add(G.you.root); G.p={x:0,z:26};
-  G.car=makeCar({id:'mine',style:'hatch',color:'#00C853'}); scene.add(G.car); G.c={x:9,z:26,h:Math.PI/2,v:0,vh:Math.PI/2}; placeCar(G.car,G.c);
+  G.you=makeRig(GLTF.crowd, MB.you, 1.9,'g'); G.you.root.add(blob(1)); scene.add(G.you.root); const sp0=new THREE.Vector3(0,0,7.5), cp0=new THREE.Vector3(12.5,0,-18.7); W.fountain.localToWorld(sp0); W.fountain.localToWorld(cp0); G.p={x:sp0.x,z:sp0.z};
+  G.car=makeCar({id:'mine',style:'hatch',color:'#00C853'}); scene.add(G.car); const ga=W.fountain.rotation.y+Math.PI/2; G.c={x:cp0.x,z:cp0.z,h:ga,v:0,vh:ga}; placeCar(G.car,G.c);
   portals(); traffic(); peds(); coins(); mapCanvas(); fxInit();
   $('#go').disabled=false; $('#go').textContent='Explore Bowling Green';
   $('#go').onclick=()=>{ audio(); $('#title').hidden=true; $('#hud').hidden=false; $('#mini').hidden=false; $('#hSpd').hidden=false; toast('Welcome to <b>Bowling Green</b>! Walk to the glowing rings to enter MoneyVerse games.'); setTimeout(()=>toast('Your car is parked right here. Press <b>E</b> next to it to drive.'),4000); };

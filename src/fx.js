@@ -12,7 +12,7 @@ function fxInit(){ Object.entries(TOD).forEach(([k,t])=>FX.skies[k]=canvasTex(4,
   const sp=[]; for(let i=0;i<900;i++){ const a=Math.random()*Math.PI*2, e=Math.random()*.9+.08, r=1100; sp.push(Math.cos(a)*Math.cos(e)*r, Math.sin(e)*r, Math.sin(a)*Math.cos(e)*r); }
   const sg=new THREE.BufferGeometry(); sg.setAttribute('position',new THREE.Float32BufferAttribute(sp,3)); FX.stars=new THREE.Points(sg,new THREE.PointsMaterial({color:'#FFFFFF',size:2.2,sizeAttenuation:false,transparent:true,opacity:0,fog:false,depthWrite:false})); scene.add(FX.stars);
   /* street-lamp glow + light pools (visible at dusk and night) */
-  const L=W.lamps||[], gp=[]; L.forEach(p=>gp.push(p.x,p.y+6,p.z)); const gg=new THREE.BufferGeometry(); gg.setAttribute('position',new THREE.Float32BufferAttribute(gp,3));
+  const L=(W.lamps||[]).concat(W.squareLamps||[]), gp=[]; L.forEach(p=>gp.push(p.x,p.y+6,p.z)); const gg=new THREE.BufferGeometry(); gg.setAttribute('position',new THREE.Float32BufferAttribute(gp,3));
   FX.lampGlow=new THREE.Points(gg,new THREE.PointsMaterial({map:glowTex,color:'#FFD27A',size:7,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending})); scene.add(FX.lampGlow);
   const PG=new THREE.PlaneGeometry(1,1); PG.rotateX(-Math.PI/2); FX.pools=new THREE.InstancedMesh(PG,new THREE.MeshBasicMaterial({map:glowTex,color:'#FFC873',transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending,polygonOffset:true,polygonOffsetFactor:-6}),L.length);
   const o=new THREE.Object3D(); L.forEach((p,i)=>{ o.position.set(p.x,p.y+.2,p.z); o.scale.set(13,1,13); o.updateMatrix(); FX.pools.setMatrixAt(i,o.matrix); }); scene.add(FX.pools);
@@ -23,6 +23,7 @@ function fxInit(){ Object.entries(TOD).forEach(([k,t])=>FX.skies[k]=canvasTex(4,
   /* water that moves */
   if(W.water){ W.water.material.onBeforeCompile=s=>{ s.uniforms.uT=FX.uT={value:0}; s.vertexShader=s.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vWP2;').replace('#include <project_vertex>','#include <project_vertex>\nvWP2=(modelMatrix*vec4(transformed,1.0)).xyz;');
     s.fragmentShader=s.fragmentShader.replace('#include <common>','#include <common>\nuniform float uT; varying vec3 vWP2;').replace('#include <color_fragment>','#include <color_fragment>\nfloat rp=sin(vWP2.x*.35+uT*1.3)*sin(vWP2.z*.42-uT*1.1)+sin((vWP2.x+vWP2.z)*.9+uT*2.2)*.4; diffuseColor.rgb+=vec3(.08,.12,.14)*rp;'); }; W.water.material.needsUpdate=true; }
+  if(W.statueSpot){ const st=makeRig(GLTF.crowd, mat('#D4A017',{metalness:.75,roughness:.25,emissive:'#6B4E00',emissiveIntensity:.25}), 1.7,'y'); st.root.position.y=W.statueSpot.y; W.statueSpot.g.add(st.root); rigPlay(st,'UpPoint'); W.statue=st; }
   billboards(); birds(); drones(); portalSparks(); setTOD('golden',true); setQuality(FX.quality); }
 
 /* ---------- MoneyVerse billboards along the highways ---------- */
@@ -53,7 +54,7 @@ function applyTOD(k){ const a=FX.from, b=FX.to, e=k*k*(3-2*k), L=(x,y)=>x+(y-x)*
   const c=FX.cur; sun.color.set(c.sun); sun.intensity=c.si; hemi.intensity=c.hemi; hemi.color.set(c.hs); hemi.groundColor.set(c.hg); scene.fog.color.set(c.fog); renderer.toneMappingExposure=c.exp; NIGHT.value=c.night;
   if(k>.5||k===1) scene.background=FX.skies[FX.sky];
   FX.stars.material.opacity=Math.max(0,c.night-.4)*1.4; FX.lampGlow.material.opacity=Math.min(1,c.night*1.3); FX.pools.material.opacity=c.night*.55;
-  if(W.lampHead) W.lampHead.material.emissiveIntensity=.4+c.night*3; FX.disc.material.color.set(c.night>.6?'#C7D2FE':'#FFD9A0'); FX.disc.material.opacity=c.night>.6?.5:.9;
+  if(W.lampHead) W.lampHead.material.emissiveIntensity=.4+c.night*3; if(W.squareGlobes) W.squareGlobes.emissiveIntensity=.5+c.night*3.5; FX.disc.material.color.set(c.night>.6?'#C7D2FE':'#FFD9A0'); FX.disc.material.opacity=c.night>.6?.5:.9;
   (G.traf||[]).concat(G.car?[{g:G.car}]:[]).forEach(t=>{ if(t.g.userData.head) t.g.userData.head.emissiveIntensity=.6+c.night*3; }); }
 function setQuality(q){ FX.quality=q; const hi=q==='high'; sun.castShadow=hi; renderer.setPixelRatio(Math.min(devicePixelRatio, hi?1.75:1)); renderer.setSize(innerWidth,innerHeight);
   const b=document.getElementById('btnQ'); if(b) b.textContent=hi?'✨ High':'⚡ Fast'; }
@@ -62,7 +63,7 @@ function setQuality(q){ FX.quality=q; const hi=q==='high'; sun.castShadow=hi; re
 function fxTick(dt,t){ if(FX.k<1){ FX.k=Math.min(1,FX.k+dt/2.2); applyTOD(FX.k); }
   const me=G.mode==='drive'?G.c:G.p, sd=FX.cur.sd, l=Math.hypot(...sd); FX.disc.position.set(camera.position.x+sd[0]/l*900,camera.position.y+sd[1]/l*900,camera.position.z+sd[2]/l*900); FX.stars.position.copy(camera.position);
   sun.position.set(me.x+sd[0]*.7,sd[1]*.7+10,me.z+sd[2]*.7); sun.target.position.set(me.x,0,me.z);
-  if(FX.uT) FX.uT.value=t;
+  if(FX.uT) FX.uT.value=t; if(W.statue) W.statue.mixer.update(dt);
   FX.birds.forEach(b=>{ b.a+=b.s*dt; const x=b.cx+Math.cos(b.a)*b.r, z=b.cz+Math.sin(b.a)*b.r; b.b.position.set(x,b.h+Math.sin(t*.7+b.ph)*2,z); b.b.rotation.y=-b.a; b.b.scale.y=.9; b.b.children; b.b.rotation.z=Math.sin(t*9+b.ph)*.5; });
   FX.drones.forEach(d=>{ d.t+=d.v*dt; const k=d.t%2, f=k<1?k:2-k, e=f*f*(3-2*f), x=d.a[0]+(d.b[0]-d.a[0])*e, z=d.a[1]+(d.b[1]-d.a[1])*e; d.g.position.set(x,Math.max(H(x,z),0)+28+Math.sin(t+d.v*40)*1.5,z); d.g.rotation.y=Math.atan2(d.b[0]-d.a[0],d.b[1]-d.a[1])+(k<1?0:Math.PI);
     d.g.children.forEach((c,i)=>{ if(c.geometry&&c.geometry.type==='CylinderGeometry') c.rotation.y+=dt*40; }); d.led.material.color.set((t*2%1)<.5?'#00E676':'#064E3B'); });

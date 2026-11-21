@@ -2,7 +2,7 @@
 # Fountain Square is the origin; distance from it is gently compressed so the far landmarks fit.
 import math, json
 LON0, LAT0 = -86.44133, 36.99317
-R, L = 520.0, 2000.0
+R, L = 600.0, 1200.0
 def P(lon, lat):
     x = (lon-LON0)*math.cos(math.radians(LAT0))*111320; z = -(lat-LAT0)*110540
     r = math.hypot(x, z)
@@ -31,7 +31,39 @@ ROUTES = {
  'I-65': ('hwy', [(-86.445,36.905),(-86.418159,36.934741),(-86.410077,36.94796),(-86.399162,36.962194),(-86.383082,36.991951),(-86.371463,37.003829),(-86.355,37.02),(-86.335,37.04)]),
  'College Heights Blvd': ('street', [(-86.441577,36.993869),(-86.450742,36.987787),(-86.451444,36.988111),(-86.452688,36.988283),(-86.453449,36.987329),(-86.45273,36.986666),(-86.451344,36.987182),(-86.450681,36.986119),(-86.449688,36.986778),(-86.451982,36.988977),(-86.453562,36.988733),(-86.4556,36.986764),(-86.457359,36.985276)]),
 }
-roads = [{'name': n, 'kind': k, 'pts': dedupe(line(p))} for n, (k, p) in ROUTES.items()]
+# real street network + building footprints traced from Mapbox renders of the core (tools/extract.py)
+CORE=json.load(open('/home/claude/botcity-bg/tools/bg_core.json'))
+lons=[p[0] for r in CORE['roads'] for p in r['pts']]; lats=[p[1] for r in CORE['roads'] for p in r['pts']]
+BB=(min(lons)+.0006,min(lats)+.0005,max(lons)-.0006,max(lats)-.0005)
+inside=lambda lon,lat: BB[0]<lon<BB[2] and BB[1]<lat<BB[3]
+def dens(pts,step=.00015):
+    out=[]
+    for (a,b),(c,d) in zip(pts,pts[1:]):
+        n=max(1,int(math.hypot(c-a,d-b)/step))
+        out+= [(a+(c-a)*i/n,b+(d-b)*i/n) for i in range(n)]
+    return out+[pts[-1]]
+roads=[]
+for n,(k,p) in ROUTES.items():
+    run=[]
+    for q in dens(p)+[None]:
+        if q is not None and not inside(*q): run.append(q); continue
+        if len(run)>1: roads.append({'name':n,'kind':k,'pts':dedupe(line(run))})
+        run=[]
+for r in CORE['roads']:
+    w=r['w']; k='major' if w>=8 else 'street' if w>=5 else 'res' if w>=3 else None
+    if not k: continue
+    pts=dedupe([P(*q) for q in r['pts']])
+    if len(pts)>1 and sum(math.hypot(b[0]-a[0],b[1]-a[1]) for a,b in zip(pts,pts[1:]))>3: roads.append({'name':'','kind':k,'pts':pts})
+import numpy as np, cv2
+bld=[]
+for b in CORE['bld']:
+    g=[P(*q) for q in b['poly']]
+    if len(g)<3: continue
+    (cx,cz),(w,d),a=cv2.minAreaRect(np.array(g,np.float32)); area=b['a']*0.91  # m^2 (0.954 m/px)
+    if w*d<1.2: continue
+    if (b['fill']>.78 and len(g)<=8) or b['a']<140: bld.append([round(cx,1),round(cz,1),round(w,1),round(d,1),round(-math.radians(a),3),round(area)])
+    else: bld.append([round(cx,1),round(cz,1),0,0,0,round(area),[c for q in g for c in q]])
+core=[P(BB[0],BB[3]),P(BB[2],BB[1])]
 # downtown grid from real measurements (Mapbox): College St snapped straight at this bearing,
 # streets every ~146 m across (Adams, Kentucky, Center, College, State, Chestnut), avenues at measured positions.
 k_=math.cos(math.radians(LAT0))*111320; kl_=110540
@@ -78,6 +110,6 @@ hill = P(-86.4528, 36.9868)
 A=P(*LL(0,52)); B=P(*LL(146,52)); Cc=P(*LL(73,5)); D=P(*LL(73,100)); ctr=P(*LL(73,52))
 GRID={'ga': math.atan2(B[0]-A[0], B[1]-A[1]), 'hx': round(math.hypot(D[0]-Cc[0],D[1]-Cc[1])/2,2), 'hz': round(math.hypot(B[0]-A[0],B[1]-A[1])/2,2), 'ctr': ctr,
  'xs': [P(*LL(c,a)) for c,_ in STREETS for a,_ in AVES]}
-out = 'const REAL='+json.dumps({'roads': roads+grid, 'lm': lm, 'river': river, 'hill': hill, 'grid': GRID})+';\n'
+out = 'const REAL='+json.dumps({'roads': roads, 'bld': bld, 'core': [min(core[0][0],core[1][0]),min(core[0][1],core[1][1]),max(core[0][0],core[1][0]),max(core[0][1],core[1][1])], 'lm': lm, 'river': river, 'hill': hill, 'grid': GRID})+';\n'
 open('/home/claude/botcity-bg/src/realmap.js', 'w').write(out)
 print(len(roads), len(grid), lm['botu'], lm['tycoon'], lm['botfactory'], lm['ballpark'], hill, len(out)//1024, 'KB')

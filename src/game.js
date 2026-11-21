@@ -52,7 +52,7 @@ function atm(){ const m=modal(`<div class="eye">BotBank ATM · presented by Amer
 function gas(){ const need=Math.round((1-G.fuel)*40); if(need<1) return toast('Tank is already full.'); const pay=Math.min(need,G.cash); if(pay<1) return toast('No cash for gas! Deliver food or hit the ATM.','bad'); G.cash-=pay; G.fuel=Math.min(1,G.fuel+pay/40); sfx.coin(); toast(`⛽ Filled up: ${fmt(pay)}. Gas is a real cost of owning a car.`); }
 
 /* ---------- traffic + people ---------- */
-function traffic(){ G.traf=[]; const roads=ROADS.filter(r=>r.kind==='major'||r.kind==='street'||r.kind==='hwy'); for(let i=0;i<(MOBILE?16:36);i++){ const r=pick(roads), g=makeCar({id:'t'+i,style:pick(['sedan','hatch','ev','truck','sedan']),color:pick(['#F59E0B','#3B82F6','#E11D48','#F8FAFC','#334155','#A855F7','#0EA5E9'])}); scene.add(g);
+function traffic(){ G.traf=[]; const rl=r=>r.pts.reduce((s,p,i)=>i?s+Math.hypot(p[0]-r.pts[i-1][0],p[1]-r.pts[i-1][1]):0,0), roads=ROADS.filter(r=>(r.kind==='major'||r.kind==='street'||r.kind==='hwy')&&rl(r)>70); for(let i=0;i<(MOBILE?16:36);i++){ const r=pick(roads), g=makeCar({id:'t'+i,style:pick(['sedan','hatch','ev','truck','sedan']),color:pick(['#F59E0B','#3B82F6','#E11D48','#F8FAFC','#334155','#A855F7','#0EA5E9'])}); scene.add(g);
   G.traf.push({g,r,seg:Math.floor(Math.random()*(r.pts.length-1)),u:0,dir:Math.random()<.5?1:-1,v:r.kind==='hwy'?rand(22,28):rand(9,13)}); } }
 function trafTick(dt){ G.traf.forEach(t=>{ const P=t.r.pts; let a=P[t.seg], b=P[t.seg+1]; const L=Math.hypot(b[0]-a[0],b[1]-a[1]); let vv=t.v; const me=G.mode==='drive'?G.c:G.p;
     const dx0=(b[0]-a[0])/L*t.dir, dz0=(b[1]-a[1])/L*t.dir, gx=me.x-t.g.position.x, gz=me.z-t.g.position.z, ahead=gx*dx0+gz*dz0; if(ahead>0&&ahead<9&&Math.abs(gx*dz0-gz*dx0)<3) vv=0;

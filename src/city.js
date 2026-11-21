@@ -15,7 +15,7 @@ function H(x,z){ let y=HILL.h*Math.exp(-((x-HILL.x)**2+(z-HILL.z)**2)/(2*HILL.r*
 /* ---------- roads (polylines) ---------- */
 const ROADS=[];
 const road=(name,w,pts,kind='street')=>ROADS.push({name,w,pts,kind});
-REAL.roads.forEach(r=>road(r.name,{hwy:19,major:13,street:8.5,square:9}[r.kind]||9,r.pts,r.kind));
+REAL.roads.forEach(r=>road(r.name,{hwy:19,major:13,street:7.5,square:7.5}[r.kind]||8,r.pts,r.kind));
 /* neighborhoods: small street grids (meters from the square, warped like the real map) */
 [[1300,650,.5],[1900,1500,.2],[-1700,1300,.9],[-1300,-150,.1],[700,1900,.7],[2700,900,.3],[-700,2600,.4],[1400,-1000,.6],[-2300,300,.2],[3200,2200,.5],[-2600,2200,.8],[300,-1700,.3]].forEach(([cx,cz,rot],n)=>{
   const ux=Math.cos(rot), uz=Math.sin(rot), S=120, K=4;
@@ -29,7 +29,7 @@ const roadY=(x,z)=>Math.max(H(x,z),-.35)+.06;
 /* ---------- landmarks + game doors ---------- */
 const LANDMARKS=[
  {id:'square', name:'Fountain Square Park', x:LMR.square[0], z:LMR.square[1], r:13, kind:'park'},
- {id:'botlife', name:'BotLife', game:true, x:LMR.botlife[0], z:LMR.botlife[1]+9, url:'https://the-come-up-phi.vercel.app/', col:'#00E676', blurb:'The open-world MoneyBot life sim. Jobs, rent, a phone, and your whole money story.'},
+ {id:'botlife', name:'BotLife', game:true, x:LMR.botlife[0]+Math.sin(REAL.grid.ga)*9, z:LMR.botlife[1]+Math.cos(REAL.grid.ga)*9, url:'https://the-come-up-phi.vercel.app/', col:'#00E676', blurb:'The open-world MoneyBot life sim. Jobs, rent, a phone, and your whole money story.'},
  {id:'botbank', name:'BotBank', game:true, x:LMR.botbank[0], z:LMR.botbank[1], url:'https://botbank-five.vercel.app', col:'#3B82F6', sponsor:'Presented by American Bank & Trust', blurb:'Run a bank: deposits, loans, interest and the occasional bank run.'},
  {id:'botpark', name:'BotPark Tower', game:true, x:LMR.botpark[0], z:LMR.botpark[1], url:'https://botstudio-rho.vercel.app', col:'#A855F7', blurb:'Build a startup from one desk to a whole tower. Games, web, AI and cyber clients.'},
  {id:'botu', name:'BotU at the Hill', game:true, x:LMR.botu[0], z:LMR.botu[1], url:'https://botu-theta.vercel.app', col:'#EF4444', blurb:'College money life: FAFSA, loans, budgets, and picking a major that pays off.'},
@@ -38,6 +38,11 @@ const LANDMARKS=[
  {id:'tycoon', name:'Greenwood Bot Mall', game:true, x:LMR.tycoon[0], z:LMR.tycoon[1], url:'https://kgarmon99.github.io/bot-tycoon/', col:'#EC4899', blurb:'Bot Tycoon: build a money empire one business at a time.'},
  {id:'botmarket', name:'BotMarket', game:true, x:LMR.botmarket[0], z:LMR.botmarket[1], url:'https://botmarket-kappa.vercel.app', col:'#10B981', blurb:'Run a grocery store: pricing, suppliers, waste, competition, profit.'},
  {id:'botfactory', name:'BotFactory', game:true, x:LMR.botfactory[0], z:LMR.botfactory[1], url:'https://kgarmon99.github.io/botfactory/', col:'#F97316', blurb:'Build the line, beat the bottleneck, and grow a factory huge.'},
+ {id:'capitol', name:'Capitol Arts Center', x:LMR.capitol[0], z:LMR.capitol[1], r:7, kind:'capitol'},
+ {id:'courthouse', name:'Warren County Courthouse', x:LMR.courthouse[0], z:LMR.courthouse[1], r:8, kind:'courthouse'},
+ {id:'justice', name:'Warren County Justice Center', x:LMR.justice[0], z:LMR.justice[1], r:8, kind:'justice'},
+ {id:'stadium', name:'L.T. Smith Stadium', x:LMR.stadium[0], z:LMR.stadium[1], r:18, kind:'stadium'},
+ {id:'hobson', name:'Riverview at Hobson Grove', x:LMR.hobson[0], z:LMR.hobson[1], r:14, kind:'mansion'},
  {id:'museum', name:'National Bot-Car Museum', x:LMR.museum[0], z:LMR.museum[1], kind:'museum'},
  {id:'ballpark', name:'Bot Rods Ballpark', x:LMR.ballpark[0], z:LMR.ballpark[1], kind:'ballpark'},
  {id:'skypac', name:'SKyPAC', x:LMR.skypac[0], z:LMR.skypac[1], kind:'skypac'},
@@ -175,7 +180,7 @@ function buildTrees(){ const T=[], cell=new Set(); for(let i=0;i<5200&&T.length<
   const bush=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,0),mat('#ffffff',{flatShading:true,roughness:.9}),BU.length); BU.forEach((b,i)=>{ o.position.set(b.x,b.y+b.s*.6,b.z); o.rotation.set(0,i,0); o.scale.set(b.s*1.3,b.s,b.s*1.3); o.updateMatrix(); bush.setMatrixAt(i,o.matrix); bush.setColorAt(i,c.set(pick(['#3F7D3A','#4A8F3F','#5C9E48','#8BAA3C']))); }); bush.castShadow=true; scene.add(bush); }
 
 function buildExtras(){ const zeb=mat('#F8FAFC',{roughness:.8, polygonOffset:true, polygonOffsetFactor:-4});
-  const XI=[]; for(let i=-3;i<=5;i++) for(let j=-4;j<=5;j++){ const [x,z]=WARP(REAL.av[0]*i*125+REAL.au[0]*j*125, REAL.av[1]*i*125+REAL.au[1]*j*125); XI.push([x,z]); } const GA=Math.atan2(REAL.au[0],REAL.au[1]); XI.forEach(([x,z])=>{ if(nearRoad(x,z).d>-2) return; const cw=new THREE.Group(); cw.position.set(x,0,z); cw.rotation.y=GA; scene.add(cw); for(const [ox,oz,v] of [[0,-7,0],[0,7,0],[-7,0,1],[7,0,1]]) for(let i=-1;i<=1;i++){ const m=new THREE.Mesh(BOX,zeb); m.scale.set(v?3.4:.7,.04,v?.7:3.4); m.position.set(ox+(v?0:i*1.4),roadY(x,z)+.14,oz+(v?i*1.4:0)); cw.add(m); } });
+  const XI=REAL.grid.xs, GA=REAL.grid.ga; XI.forEach(([x,z])=>{ if(nearRoad(x,z).d>-2) return; const cw=new THREE.Group(); cw.position.set(x,0,z); cw.rotation.y=GA; scene.add(cw); for(const [ox,oz,v] of [[0,-7,0],[0,7,0],[-7,0,1],[7,0,1]]) for(let i=-1;i<=1;i++){ const m=new THREE.Mesh(BOX,zeb); m.scale.set(v?3.4:.7,.04,v?.7:3.4); m.position.set(ox+(v?0:i*1.4),roadY(x,z)+.14,oz+(v?i*1.4:0)); cw.add(m); } });
   /* green street-name signs at the start of every named road */
   const pole=mat('#475569'); ROADS.filter(r=>r.kind!=='res'&&r.kind!=='square').forEach(r=>{ [0,r.pts.length-2].forEach(i=>{ const [x0,z0]=r.pts[i],[x1,z1]=r.pts[i+1], L=Math.hypot(x1-x0,z1-z0); const t=i?1-8/L:8/L, x=x0+(x1-x0)*t+(z1-z0)/L*(r.w/2+1.5), z=z0+(z1-z0)*t-(x1-x0)/L*(r.w/2+1.5); if(H(x,z)<-.5) return;
     const g=new THREE.Group(); g.position.set(x,roadY(x,z),z); g.rotation.y=Math.atan2(x1-x0,z1-z0)+Math.PI/2; scene.add(g); cy(g,.08,4.2,0,0,0,pole); sign(g,[{t:r.name,size:58,color:'#FFFFFF'}],Math.min(5.2,1.2+r.name.length*.26),.62,0,4.2,0,{bg:r.kind==='hwy'?'#1D4ED8':'#15803D',r:8,w:640,h:96}); }); });
@@ -187,16 +192,16 @@ function buildLights(){ const L=[]; SEGS.forEach(s=>{ if(s.r.kind==='res'||s.r.k
   W.lamps=L; L.forEach((p,i)=>{ o.position.set(p.x,p.y+3,p.z); o.scale.set(.12,6,.12); o.updateMatrix(); pole.setMatrixAt(i,o.matrix); o.position.set(p.x,p.y+6,p.z); o.scale.set(.6,.2,.6); o.updateMatrix(); head.setMatrixAt(i,o.matrix); }); scene.add(pole,head); W.lampHead=head; }
 
 /* ---------- Fountain Square Park: the hero of downtown ---------- */
-function buildSquare(){ const GA=Math.atan2(REAL.au[0],REAL.au[1]), y0=H(0,0)-.05, g=new THREE.Group(); g.position.set(0,y0,0); g.rotation.y=GA; scene.add(g); W.fountain=g; W.squareLamps=[];
-  const hs=9.3, stone=mat('#DDD6C8',{roughness:.55}), iron=mat('#24352B',{metalness:.55,roughness:.4}), gold=mat('#D4A017',{metalness:.7,roughness:.25,emissive:'#7A5A00',emissiveIntensity:.2});
+function buildSquare(){ const GA=REAL.grid.ga, y0=H(0,0)-.05, g=new THREE.Group(); g.position.set(0,y0,0); g.rotation.y=GA; scene.add(g); W.fountain=g; W.squareLamps=[];
+  const hx=6.3, hz=12.8, stone=mat('#DDD6C8',{roughness:.55}), iron=mat('#24352B',{metalness:.55,roughness:.4}), gold=mat('#D4A017',{metalness:.7,roughness:.25,emissive:'#7A5A00',emissiveIntensity:.2});
   const brickTex=canvasTex(128,128,(c,w,h)=>{ c.fillStyle='#B0604A'; c.fillRect(0,0,w,h); for(let i=0;i<220;i++){ c.fillStyle=`rgba(${120+Math.random()*60|0},${50+Math.random()*30|0},${40+Math.random()*20|0},.35)`; c.fillRect(Math.random()*w,Math.random()*h,14,7); }
     c.strokeStyle='#E8D6C4'; c.lineWidth=2; for(let y=0;y<h;y+=16){ c.beginPath(); c.moveTo(0,y); c.lineTo(w,y); c.stroke(); for(let x=(y/16%2)*16;x<w;x+=32){ c.beginPath(); c.moveTo(x,y); c.lineTo(x,y+16); c.stroke(); } } },true); brickTex.repeat.set(5,2);
   const brickM=new THREE.MeshStandardMaterial({map:brickTex,roughness:.9});
   const box=(w,h,d,x,y,z,m,ry=0)=>{ const e=new THREE.Mesh(BOX,m); e.scale.set(w,h,d); e.position.set(x,y+h/2,z); e.rotation.y=ry; e.castShadow=true; e.receiveShadow=true; g.add(e); return e; };
   /* lawn, brick walks (diagonals, perimeter, plaza) */
-  box(hs*2,.32,hs*2,0,0,0,mat('#5A9A42',{roughness:1}));
-  [Math.PI/4,-Math.PI/4].forEach(r=>box(hs*2.7,.36,1.8,0,0,0,brickM,r));
-  [[0,hs-.7,hs*2,1.4],[0,-hs+.7,hs*2,1.4],[hs-.7,0,1.4,hs*2],[-hs+.7,0,1.4,hs*2]].forEach(([x,z,w,d])=>box(w,.36,d,x,0,z,brickM));
+  box(hx*2,.32,hz*2,0,0,0,mat('#5A9A42',{roughness:1}));
+  const da=Math.atan2(hz,hx); [da,-da].forEach(r=>box(2*Math.hypot(hx,hz)-1,.36,1.6,0,0,0,brickM,r));
+  [[0,hz-.7,hx*2,1.4],[0,-hz+.7,hx*2,1.4],[hx-.7,0,1.4,hz*2],[-hx+.7,0,1.4,hz*2]].forEach(([x,z,w,d])=>box(w,.36,d,x,0,z,brickM));
   const plaza=new THREE.Mesh(new THREE.CylinderGeometry(5.3,5.3,.38,48),brickM); plaza.position.y=.19; plaza.receiveShadow=true; g.add(plaza);
   /* the fountain: octagonal basin, two cast-iron tiers with falling water, golden statue on top */
   const basin=new THREE.Mesh(new THREE.CylinderGeometry(3.7,3.95,.95,8),stone); basin.position.y=.82; basin.castShadow=true; g.add(basin);
@@ -217,51 +222,72 @@ function buildSquare(){ const GA=Math.atan2(REAL.au[0],REAL.au[1]), y0=H(0,0)-.0
   /* flower beds ringing the plaza */
   const FL=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.28,0),mat('#ffffff',{flatShading:true}),160), o=new THREE.Object3D(), c=new THREE.Color(); let n=0;
   for(let i=0;i<96;i++){ const a=i/96*Math.PI*2, r=4.45+(i%2)*.35; o.position.set(Math.cos(a)*r,.45,Math.sin(a)*r); o.scale.setScalar(rand(.8,1.3)); o.updateMatrix(); FL.setMatrixAt(n,o.matrix); FL.setColorAt(n++,c.set(pick(['#E11D48','#F59E0B','#A855F7','#F472B6','#FDE047','#FFFFFF']))); }
-  [[0,6.6],[0,-6.6],[6.6,0],[-6.6,0]].forEach(([x,z])=>{ for(let i=0;i<16;i++){ o.position.set(x+(x?rand(-.5,.5):rand(-1.6,1.6)),.45,z+(z?rand(-.5,.5):rand(-1.6,1.6))); o.scale.setScalar(rand(.8,1.2)); o.updateMatrix(); FL.setMatrixAt(n,o.matrix); FL.setColorAt(n++,c.set(pick(['#DC2626','#FBBF24','#7C3AED','#EC4899']))); } });
+  [[0,9.6],[0,-9.6],[0,7.4],[0,-7.4]].forEach(([x,z])=>{ for(let i=0;i<16;i++){ o.position.set(x+(x?rand(-.5,.5):rand(-1.6,1.6)),.45,z+(z?rand(-.5,.5):rand(-1.6,1.6))); o.scale.setScalar(rand(.8,1.2)); o.updateMatrix(); FL.setMatrixAt(n,o.matrix); FL.setColorAt(n++,c.set(pick(['#DC2626','#FBBF24','#7C3AED','#EC4899']))); } });
   FL.count=n; g.add(FL);
-  [[0,6.6],[0,-6.6],[6.6,0],[-6.6,0]].forEach(([x,z])=>box(x?1.4:3.8,.22,z?1.4:3.8,x,.32,z,mat('#5B3A29')));
+  [[0,9.6],[0,-9.6],[0,7.4],[0,-7.4]].forEach(([x,z])=>box(3.8,.22,1.4,x,.32,z,mat('#5B3A29')));
   /* four big shade trees + smaller ones along the walks */
   const leaf=['#3E8E3A','#4E9E40','#3A7F36','#D97706'];
-  [[-7,-7,.62],[7,-7,.58],[7,7,.64],[-7,7,.6],[-3.4,-7.9,.42],[3.4,7.9,.42],[7.9,-3.4,.42],[-7.9,3.4,.42]].forEach(([x,z,s],i)=>{ box(.5*s,4.2*s,.5*s,x,.3,z,mat('#5B4130'));
+  [[-4.3,-11,.6],[4.3,-11,.56],[4.3,11,.62],[-4.3,11,.58],[-4.8,-4.8,.38],[4.8,4.8,.38],[4.8,-4.8,.38],[-4.8,4.8,.38]].forEach(([x,z,s],i)=>{ box(.5*s,4.2*s,.5*s,x,.3,z,mat('#5B4130'));
     const lm=mat(leaf[i%4],{flatShading:true,roughness:.9}); [[0,5.2,0,2.4],[1.1,4.6,.4,1.7],[-1,4.7,-.5,1.8],[.2,6.1,-.2,1.6]].forEach(([dx,dy,dz,r])=>{ const cr=new THREE.Mesh(new THREE.IcosahedronGeometry(r*s,1),lm); cr.position.set(x+dx*s,dy*s,z+dz*s); cr.castShadow=true; g.add(cr); }); });
   /* benches facing the fountain */
   const wood=mat('#8B5A2B',{roughness:.8});
-  for(let i=0;i<8;i++){ const a=i/8*Math.PI*2+Math.PI/8, r=6.0, b=new THREE.Group(); b.position.set(Math.cos(a)*r,.36,Math.sin(a)*r); b.rotation.y=-a-Math.PI/2; g.add(b);
+  for(let i=0;i<8;i++){ const a=i/8*Math.PI*2+Math.PI/8, r=5.8, b=new THREE.Group(); b.position.set(Math.cos(a)*r,.36,Math.sin(a)*r); b.rotation.y=-a-Math.PI/2; g.add(b);
     bx(b,2.2,.14,.6,0,.55,0,wood); bx(b,2.2,.5,.1,0,.75,-.28,wood); [-.9,.9].forEach(x=>bx(b,.1,.6,.6,x,0,0,iron)); }
   /* Victorian lampposts with globe lights + green banners */
   const globe=mat('#FFF7E0',{emissive:'#FFD58A',emissiveIntensity:.5}); W.squareGlobes=globe;
-  [[-hs+.3,-hs+2.6],[-hs+2.6,-hs+.3],[hs-.3,-hs+2.6],[hs-2.6,-hs+.3],[hs-.3,hs-2.6],[hs-2.6,hs-.3],[-hs+.3,hs-2.6],[-hs+2.6,hs-.3],[0,hs-.3],[0,-hs+.3],[hs-.3,0],[-hs+.3,0]].forEach(([x,z],i)=>{
+  [[-hx+.3,-hz+2.4],[-hx+2.4,-hz+.3],[hx-.3,-hz+2.4],[hx-2.4,-hz+.3],[hx-.3,hz-2.4],[hx-2.4,hz-.3],[-hx+.3,hz-2.4],[-hx+2.4,hz-.3],[0,hz-.3],[0,-hz+.3],[hx-.3,0],[-hx+.3,0],[hx-.3,hz/2],[-hx+.3,-hz/2]].forEach(([x,z],i)=>{
     const l=new THREE.Group(); l.position.set(x,.36,z); g.add(l); cy(l,.22,.6,0,0,0,iron); cy(l,.09,3.6,0,.6,0,iron); bx(l,1.2,.08,.08,0,3.9,0,iron);
     [-.55,.55].forEach(dx=>{ const gl=new THREE.Mesh(new THREE.SphereGeometry(.26,14,10),globe); gl.position.set(dx,4.15,0); l.add(gl); });
     const wp=new THREE.Vector3(x,.36+4.2,z).applyMatrix4(new THREE.Matrix4().makeRotationY(GA)); W.squareLamps.push({x:wp.x,y:y0+wp.y-6,z:wp.z});
     if(i>=8){ const bn=new THREE.Mesh(new THREE.PlaneGeometry(.8,1.6,1,6),new THREE.MeshStandardMaterial({map:textTex([{t:'FOUNTAIN',size:34,color:'#FFFFFF'},{t:'SQUARE',size:34,color:'#FDE68A'}],{bg:i%2?'#14532D':'#1E3A8A',w:128,h:256,r:6}),side:THREE.DoubleSide})); bn.position.set(.45,2.9,0); l.add(bn);
       const P=bn.geometry.attributes.position, base=P.array.slice(); W.anim.push(t=>{ for(let v=0;v<P.count;v++) P.setZ(v,Math.sin(t*3+base[v*3+1]*2+i)*.06); P.needsUpdate=true; }); } });
   /* low iron fence with openings where the walks meet the corners */
-  const posts=[]; for(let s=-1;s<=1;s+=2) for(let t=-hs+2.2;t<=hs-2.2;t+=1.1){ posts.push([t,s*(hs-.05)],[s*(hs-.05),t]); }
+  const posts=[]; for(let s=-1;s<=1;s+=2){ for(let t=-hx+2.2;t<=hx-2.2;t+=1.1) posts.push([t,s*(hz-.05)]); for(let t=-hz+2.2;t<=hz-2.2;t+=1.1) posts.push([s*(hx-.05),t]); }
   const PI=new THREE.InstancedMesh(BOX,iron,posts.length); posts.forEach(([x,z],i)=>{ o.position.set(x,.75,z); o.scale.set(.08,.8,.08); o.rotation.set(0,0,0); o.updateMatrix(); PI.setMatrixAt(i,o.matrix); }); g.add(PI);
-  [-1,1].forEach(s=>{ box(hs*2-4.4,.06,.06,0,1.05,s*(hs-.05),iron); box(.06,.06,hs*2-4.4,s*(hs-.05),1.05,0,iron); box(hs*2-4.4,.06,.06,0,.6,s*(hs-.05),iron); box(.06,.06,hs*2-4.4,s*(hs-.05),.6,0,iron); });
+  [-1,1].forEach(s=>{ [1.05,.6].forEach(y=>{ box(hx*2-4.4,.06,.06,0,y,s*(hz-.05),iron); box(.06,.06,hz*2-4.4,s*(hx-.05),y,0,iron); }); });
   /* the State St clock on the corner */
-  const clk=new THREE.Group(); clk.position.set(hs+1.5,.1,hs+1.5); g.add(clk); cy(clk,.35,.5,0,0,0,iron); cy(clk,.13,4.2,0,.5,0,iron);
+  const clk=new THREE.Group(); clk.position.set(hx+1.7,.1,hz+1.7); g.add(clk); cy(clk,.35,.5,0,0,0,iron); cy(clk,.13,4.2,0,.5,0,iron);
   const face=new THREE.MeshStandardMaterial({map:canvasTex(128,128,(c,w,h)=>{ c.fillStyle='#FFFDF5'; c.beginPath(); c.arc(64,64,62,0,7); c.fill(); c.strokeStyle='#111'; c.lineWidth=5; c.stroke(); for(let i=0;i<12;i++){ const a=i/12*Math.PI*2; c.lineWidth=i%3?2:5; c.beginPath(); c.moveTo(64+Math.cos(a)*48,64+Math.sin(a)*48); c.lineTo(64+Math.cos(a)*56,64+Math.sin(a)*56); c.stroke(); } c.lineWidth=5; c.beginPath(); c.moveTo(64,64); c.lineTo(64,28); c.stroke(); c.lineWidth=3; c.beginPath(); c.moveTo(64,64); c.lineTo(94,70); c.stroke(); }),emissive:'#FFF3C4',emissiveIntensity:.15});
   const head=new THREE.Mesh(new THREE.BoxGeometry(1.3,1.3,1.3),[face,face,iron,iron,face,face]); head.position.y=5.3; clk.add(head); const cap=new THREE.Mesh(new THREE.ConeGeometry(.9,.8,4),iron); cap.rotation.y=Math.PI/4; cap.position.y=6.35; clk.add(cap);
   /* café tables with striped umbrellas outside the shops + parked cars around the square */
   const umb=['#DC2626','#15803D','#1D4ED8','#F59E0B'];
-  [[-1,0],[1,0],[0,-1],[0,1]].forEach(([sx,sz],k)=>{ for(let i=-1;i<=1;i+=2){ const along=i*5, x=sx?sx*21.4:along, z=sz?sz*21.4:along; const tb=new THREE.Group(); tb.position.set(x,.15,z); g.add(tb);
+  [[-1,0],[1,0],[0,-1],[0,1]].forEach(([sx,sz],k)=>{ for(let i=-1;i<=1;i+=2){ const x=sx?sx*(REAL.grid.hx+5):i*5, z=sz?sz*(REAL.grid.hz+5):i*6; const tb=new THREE.Group(); tb.position.set(x,.15,z); g.add(tb);
     cy(tb,.6,.08,0,.75,0,mat('#F8FAFC')); cy(tb,.06,.75,0,0,0,iron); cy(tb,.04,2.2,0,.8,0,iron); const u=new THREE.Mesh(new THREE.ConeGeometry(1.3,.55,8),mat(umb[k],{flatShading:true})); u.position.y=3.1; tb.add(u);
     [[.9,0],[-.9,0]].forEach(([dx,dz])=>bx(tb,.4,.5,.4,dx,0,dz,mat('#334155'))); } });
-  W.squareCars=[]; [[-8,-18.7,0],[3,-18.7,0],[10,18.7,Math.PI],[-4,18.7,Math.PI],[18.7,-9,Math.PI/2],[18.7,5,Math.PI/2],[-18.7,9,-Math.PI/2],[-18.7,-3,-Math.PI/2]].forEach(([x,z,ry],i)=>{ const cc=makeCar({id:'park'+i,style:pick(['sedan','hatch','ev','coupe']),color:pick(['#DC2626','#F8FAFC','#1E3A8A','#F59E0B','#334155','#0EA5E9','#16A34A'])}); cc.position.set(x,.1,z); cc.rotation.y=ry; g.add(cc); W.squareCars.push(cc); });
+  W.squareCars=[]; [[REAL.grid.hx+1.7,-6,0],[REAL.grid.hx+1.7,7,0],[-REAL.grid.hx-1.7,4,Math.PI],[-REAL.grid.hx-1.7,-9,Math.PI],[-6,REAL.grid.hz+1.7,Math.PI/2],[5,-REAL.grid.hz-1.7,-Math.PI/2]].forEach(([x,z,ry],i)=>{ const cc=makeCar({id:'park'+i,style:pick(['sedan','hatch','ev','coupe']),color:pick(['#DC2626','#F8FAFC','#1E3A8A','#F59E0B','#334155','#0EA5E9','#16A34A'])}); cc.position.set(x,.1,z); cc.rotation.y=ry; g.add(cc); W.squareCars.push(cc); });
   /* food truck parked at the curb */
-  const t=new THREE.Group(); t.position.set(-1.5,.1,-18.5); g.add(t); bx(t,5.4,2.6,2.4,0,.5,0,mat('#F97316')); bx(t,1.6,1.8,2.3,3.3,.5,0,mat('#FDBA74')); bx(t,2.6,1.1,.08,-.6,1.5,1.21,mat('#1F2937'));
+  const t=new THREE.Group(); t.position.set(-4,.1,-REAL.grid.hz-1.7); g.add(t); bx(t,5.4,2.6,2.4,0,.5,0,mat('#F97316')); bx(t,1.6,1.8,2.3,3.3,.5,0,mat('#FDBA74')); bx(t,2.6,1.1,.08,-.6,1.5,1.21,mat('#1F2937'));
   [-1.6,1.8].forEach(x=>[-1.2,1.2].forEach(z=>{ const w=new THREE.Mesh(new THREE.CylinderGeometry(.45,.45,.3,12),mat('#111827')); w.rotation.x=Math.PI/2; w.position.set(x,.45,z); t.add(w); })); sign(t,[{t:'🍔 BOT EATS',size:70,color:'#FFFFFF'}],3.6,.8,0,3.6,1.25,{bg:'#B91C1C',r:10});
   g.updateMatrixWorld(true); const tw=new THREE.Vector3(); t.getWorldPosition(tw); W.truck={x:tw.x,z:tw.z};
 }
 
+function buildCivic(){ const GA=REAL.grid.ga, brick=mat('#A0523D'), cream=mat('#EDE5D4'), white=mat('#F8FAFC'), slate=mat('#475569'), glass=GLASS;
+  const face=(l,ry)=>{ const g=grp(l,ry); return g; }, toRoad=(l)=>{ const nr=nearRoad(l.x,l.z); return nr.s?Math.atan2(nr.px-l.x,nr.pz-l.z):0; };
+  /* Capitol Arts Center: 1920s theater with a tall vertical marquee */
+  { const l=L$('capitol'), g=face(l,toRoad(l)); bx(g,9,11,12,0,0,-1,mat('#C9A27E')); bx(g,9.4,.8,12.4,0,11,-1,mat('#8B5E3C')); bx(g,7,.5,2.6,0,4.2,5.6,mat('#1F2937'));
+    const mq=sign(g,[{t:'CAPITOL',size:80,color:'#FDE68A'}],1.6,6,0,8,5.2,{bg:'#7F1D1D',r:8,w:160,h:640,glow:.9}); mq.rotation.y=Math.PI/2; sign(g,[{t:'NOW SHOWING · BOT CITY NIGHTS',size:44,color:'#111827'}],6.6,.9,0,4.95,6.95,{bg:'#FEF3C7',r:6,glow:.4}); colBox(l,10,10); }
+  /* Warren County Courthouse: columns + dome */
+  { const l=L$('courthouse'), g=face(l,toRoad(l)); bx(g,16,9,12,0,0,0,cream); bx(g,16.6,1,12.6,0,9,0,white); for(let i=-2;i<=2;i++) cy(g,.6,8,i*3,0,6.6,white); bx(g,15,.6,2.6,0,0,6.8,mat('#D1D5DB'));
+    cy(g,3,3,0,10,0,white); const d=new THREE.Mesh(new THREE.SphereGeometry(3.2,24,12,0,Math.PI*2,0,Math.PI/2),mat('#6B8F71',{metalness:.3,roughness:.5})); d.position.y=13; g.add(d); cy(g,.12,2,0,16,0,mat('#D4A017',{metalness:.7}));
+    sign(g,[{t:'WARREN COUNTY COURTHOUSE',size:48,color:'#1F2937'}],10,.9,0,9.5,6.35,{bg:'#F8FAFC',r:4}); colBox(l,16,12); }
+  /* Justice Center: modern stone + glass */
+  { const l=L$('justice'), g=face(l,toRoad(l)); bx(g,18,13,14,0,0,0,mat('#D6D3D1')); bx(g,7,13,.4,-4,0,7.1,glass); bx(g,18.4,.8,14.4,0,13,0,mat('#A8A29E')); sign(g,[{t:'JUSTICE CENTER',size:56,color:'#1F2937'}],7,1,5,4,7.15,{bg:'#E7E5E4',r:4}); colBox(l,18,14); }
+  /* L.T. Smith Stadium: WKU football */
+  { const l=L$('stadium'), g=grp(l,GA); const f=new THREE.Mesh(BOX,mat('#3F8F3A')); f.scale.set(22,.2,38); f.position.y=.1; g.add(f); for(let z=-15;z<=15;z+=5){ const ln=new THREE.Mesh(BOX,white); ln.scale.set(22,.05,.25); ln.position.set(0,.23,z); g.add(ln); }
+    [-1,1].forEach(s=>{ for(let k=0;k<5;k++) bx(g,4,1.4+k*1.5,40,s*(13+k*1.8),0,0,mat(k%2?'#B91C1C':'#E5E7EB')); bx(g,3,7,10,s*21.5,7,0,mat('#1F2937')); });
+    [[-12,-21],[12,-21],[-12,21],[12,21]].forEach(([x,z])=>{ cy(g,.35,22,x,0,z,slate); bx(g,4,2.4,1,x,21,z,mat('#F8FAFC',{emissive:'#FFFFFF',emissiveIntensity:.5})); });
+    sign(g,[{t:'L.T. SMITH STADIUM',size:60,color:'#FFFFFF'}],10,1.4,0,10,-20,{bg:'#B91C1C',r:6}); addCol(l.x-22,l.z-22,l.x+22,l.z+22); }
+  /* Riverview at Hobson Grove: Italianate mansion in the park */
+  { const l=L$('hobson'), g=grp(l,toRoad(l)); bx(g,12,8,10,0,0,0,mat('#9C4A35')); bx(g,12.8,.6,10.8,0,8,0,white); const rf=new THREE.Mesh(new THREE.ConeGeometry(8.6,3,4),slate); rf.rotation.y=Math.PI/4; rf.scale.set(1,1,.85); rf.position.y=10.1; g.add(rf);
+    bx(g,3.6,14,3.6,4.4,0,3.2,mat('#9C4A35')); const tr=new THREE.Mesh(new THREE.ConeGeometry(2.8,2.6,4),slate); tr.rotation.y=Math.PI/4; tr.position.set(4.4,15.3,3.2); g.add(tr);
+    bx(g,6,.4,2.4,-2,3,6.2,white); [-4.6,.6].forEach(x=>cy(g,.18,3,x,0,7,white)); sign(g,[{t:'Riverview at Hobson Grove',size:48,color:'#FFFFFF'}],7,1,0,1.6,9.5,{bg:'#14532D',r:6}); colBox(l,13,11); }
+}
 /* ---------- landmarks, hand built ---------- */
 function L$(id){ return LANDMARKS.find(l=>l.id===id); }
 function grp(l,ry=0){ const g=new THREE.Group(); g.position.set(l.x,H(l.x,l.z)-.2,l.z); g.rotation.y=ry; scene.add(g); l.g=g; return g; }
 function colBox(l,w,d){ addCol(l.x-w/2,l.z-d/2,l.x+w/2,l.z+d/2); }
 function buildLandmarks(){ const brick=mat('#A0523D'), cream=mat('#EFE6D6'), slate=mat('#475569'), glass=GLASS, white=mat('#F8FAFC'), gold=mat('#D4A017',{metalness:.6,roughness:.3}), green=mat('#2F6B3A');
-  buildSquare();
+  buildSquare(); buildCivic();
   /* BotBank: columned bank on the square */
   { const l=L$('botbank'), g=grp(l,Math.PI); bx(g,26,14,18,0,0,0,cream); bx(g,28,1.4,20,0,14,0,white); const tri=new THREE.Mesh(new THREE.CylinderGeometry(15,15,20,3,1),white); tri.rotation.z=Math.PI/2; tri.scale.set(.25,1,1); tri.position.set(0,16,0); g.add(tri);
     for(let i=-3;i<=3;i++) cy(g,.8,12,i*3.6,0,10.4,white); bx(g,26,.8,4,0,0,10.6,mat('#D1D5DB')); sign(g,[{t:'BotBank',size:96,color:'#FFFFFF'}],12,2.4,0,13,11.2,{bg:'#1D4ED8',r:16}); sign(g,[{t:'presented by American Bank & Trust',size:40,color:'#1E3A8A'}],12,1.1,0,11.3,11.2,{bg:'#E0E7FF',r:10}); colBox(l,26,18); }
